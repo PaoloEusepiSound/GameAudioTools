@@ -2,7 +2,9 @@ Game Audio Tools
 A suite of lightweight, standalone browser tools for game audio professionals — sound designers, audio leads, and QA engineers.
 No installation. No backend. No dependencies. Each tool is a single .html file that runs entirely in the browser.
 
-Tools
+Tools:
+
+
 🟡 SFX Renamer
 Naming Convention Tool
 Define a custom naming convention, load a batch of audio files, fill in the label fields, and apply the rename — directly on disk or as a ZIP archive. Designed for sound designers working under a lead-defined naming structure across different projects.
