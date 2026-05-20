@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wwise Session Analysis Tool</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg:#0a0c0a;--bg2:#0d100d;--bg3:#111411;--panel:#0f130f;
+  --border:#1c261c;--border2:#243024;
+  --green:#39ff6a;--green-dim:#1a7a32;--green-muted:#152515;
+  --cyan:#00e5ff;--cyan-dim:#006880;--cyan-muted:#001a22;
+  --pink:#ff6eb4;--pink-dim:#7a2050;--pink-muted:#220014;
+  --yellow:#ffe066;--yellow-dim:#7a6400;--yellow-muted:#1e1800;
+  --amber:#f5a623;--red:#ff4444;
+  --text:#a8c8a8;--text-dim:#4a664a;--text-bright:#dfffdf;
+  --text-label:#7aaa7a;
+  --mono:'JetBrains Mono',monospace;
+}
+body{background:var(--bg);color:var(--text);font-family:var(--mono);font-size:12px;line-height:1.4;min-height:100vh;}
+.root{padding:0.6rem;position:relative;max-width:1400px;margin:0 auto;}
+
+.topbar{display:flex;align-items:center;gap:0.5rem;padding:0.4rem 0.75rem;background:var(--bg2);border:1px solid var(--border);border-radius:3px;margin-bottom:0.5rem;font-size:10px;letter-spacing:0.04em;}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--green-dim);flex-shrink:0;transition:background 0.3s,box-shadow 0.3s;}
+.dot.on{background:var(--green);box-shadow:0 0 7px var(--green);}
+.topbar-title{color:var(--green);font-weight:700;letter-spacing:0.05em;font-size:11px;}
+.sep{color:var(--border2);}
+.meta{color:var(--text-dim);}
+.meta span{color:var(--text);}
+
+.drop-zone{border:1px dashed var(--green-dim);border-radius:3px;padding:1.4rem 1rem;text-align:center;cursor:pointer;background:var(--bg2);transition:border-color 0.15s,background 0.15s;margin-bottom:0.75rem;}
+.drop-zone:hover,.drop-zone.drag-over{border-color:var(--green);background:var(--green-muted);}
+.drop-zone input{display:none;}
+.drop-zone .prompt{color:var(--green);font-weight:700;font-size:15px;margin-bottom:4px;letter-spacing:0.05em;}
+.drop-zone .hint{color:var(--text-dim);font-size:10px;}
+.cursor{display:inline-block;width:8px;height:14px;background:var(--green);vertical-align:middle;animation:blink 1s step-end infinite;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+
+.tool-desc{background:var(--bg2);border:1px solid var(--border);border-radius:3px;padding:0.8rem 1rem;margin-bottom:0.5rem;}
+.tool-desc-title{color:var(--text-bright);font-weight:700;font-size:11px;letter-spacing:0.05em;margin-bottom:0.4rem;}
+.tool-desc-text{color:var(--text-dim);font-size:10px;line-height:1.65;}
+.tool-desc-text strong{color:var(--text-label);}
+.tool-desc-steps{margin-top:0.5rem;color:var(--text-dim);font-size:10px;line-height:1.8;}
+.tool-desc-steps span{color:var(--green-dim);font-weight:700;margin-right:0.35rem;}
+.tool-note{margin-top:0.5rem;padding:0.5rem 0.75rem;border:1px solid #2a2a00;border-radius:2px;background:#0e0e00;font-size:9px;color:#7a7a40;line-height:1.6;}
+.tool-note strong{color:#9a9a50;}
+
+.action-bar{display:none;gap:0.6rem;margin-bottom:0.6rem;flex-wrap:wrap;}
+.action-bar.visible{display:flex;}
+.btn-choice{flex:1;min-width:180px;padding:1.4rem 1.3rem;border-radius:4px;cursor:pointer;font-family:var(--mono);border:1px solid;transition:background 0.15s,border-color 0.15s;text-align:left;}
+.btn-choice-label{font-size:15px;font-weight:700;letter-spacing:0.08em;margin-bottom:0.45rem;}
+.btn-choice-desc{font-size:10px;line-height:1.6;letter-spacing:0.02em;color:var(--text-dim);}
+.btn-choice-tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:0.6rem;}
+.tag{font-size:8px;font-weight:700;letter-spacing:0.07em;padding:3px 7px;border-radius:2px;background:rgba(255,255,255,0.04);border:1px solid var(--border2);color:var(--text-dim);}
+.btn-fast-c{background:var(--bg2);border-color:var(--border2);}
+.btn-fast-c .btn-choice-label{color:var(--text-bright);}
+.btn-fast-c:hover{background:var(--bg3);border-color:var(--green-dim);}
+.btn-fast-c:hover .tag{border-color:var(--green-dim);color:var(--text);}
+.btn-fast-c:hover .btn-choice-desc{color:var(--text);}
+.btn-qa-c{background:var(--green-muted);border-color:var(--green-dim);}
+.btn-qa-c .btn-choice-label{color:var(--green);}
+.btn-qa-c .tag{border-color:var(--green-dim);color:var(--green-dim);}
+.btn-qa-c:hover{background:#1a3a1a;border-color:var(--green);}
+.btn-qa-c:hover .tag{color:var(--green);}
+.btn-qa-c:hover .btn-choice-desc{color:var(--text);}
+.btn-loud-c{background:#0d0d1a;border-color:#2a2a4a;}
+.btn-loud-c .btn-choice-label{color:#a0a0ff;}
+.btn-loud-c .tag{border-color:#2a2a4a;color:#5a5a8a;}
+.btn-loud-c:hover{background:#111128;border-color:#4a4aaa;}
+.btn-loud-c:hover .tag{color:#a0a0ff;}
+.btn-loud-c:hover .btn-choice-desc{color:var(--text);}
+.btn-prefix{color:var(--text-dim);margin-right:0.3rem;}
+.btn-qa-c .btn-prefix{color:var(--green-dim);}
+.btn-loud-c .btn-prefix{color:#5a5a8a;}
+
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.82);z-index:100;align-items:center;justify-content:center;}
+.overlay.visible{display:flex;}
+.modal{background:var(--bg2);border:1px solid var(--border2);border-radius:4px;padding:1.25rem;width:380px;max-width:95vw;}
+.modal-title{color:var(--green);font-weight:700;font-size:14px;letter-spacing:0.08em;margin-bottom:0.25rem;}
+.modal-title.loud{color:#a0a0ff;}
+.modal-sub{color:var(--text-dim);font-size:9px;margin-bottom:1rem;letter-spacing:0.04em;}
+.field{margin-bottom:0.75rem;}
+.field label{display:block;font-size:9px;color:var(--text-dim);letter-spacing:0.07em;text-transform:uppercase;margin-bottom:4px;}
+.field input{width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:2px;color:var(--text-bright);font-family:var(--mono);font-size:14px;font-weight:700;padding:0.4rem 0.5rem;outline:none;}
+.field input:focus{border-color:var(--green);}
+.field-hint{font-size:8px;color:var(--text-dim);margin-top:3px;}
+.field-rules{margin-top:0.75rem;padding-top:0.75rem;border-top:1px solid var(--border);font-size:9px;color:var(--text-dim);line-height:1.8;}
+.field-rules .rule-ok{color:var(--green);font-weight:700;}
+.field-rules .rule-warn{color:var(--amber);font-weight:700;}
+.field-rules .rule-crit{color:var(--red);font-weight:700;}
+.warn-row{display:flex;align-items:center;gap:0.5rem;margin-top:0.75rem;padding-top:0.75rem;border-top:1px solid var(--border);}
+.warn-row label{font-size:9px;color:var(--text-dim);letter-spacing:0.06em;white-space:nowrap;}
+.warn-row input[type=range]{flex:1;accent-color:var(--amber);}
+.warn-row span{font-size:11px;font-weight:700;color:var(--amber);min-width:2.5rem;text-align:right;}
+.modal-actions{display:flex;gap:0.5rem;margin-top:1rem;}
+.btn-cancel{flex:1;padding:0.45rem;background:transparent;border:1px solid var(--border2);border-radius:2px;color:var(--text-dim);font-family:var(--mono);font-size:10px;cursor:pointer;}
+.btn-cancel:hover{border-color:var(--text-dim);color:var(--text);}
+.btn-run{flex:2;padding:0.45rem;background:var(--green-muted);border:1px solid var(--green);border-radius:2px;color:var(--green);font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:0.06em;cursor:pointer;}
+.btn-run:hover{background:#1f4a2a;color:var(--text-bright);}
+.btn-run-loud{background:#1a1a3a;border-color:#4a4aaa;color:#a0a0ff;}
+.btn-run-loud:hover{background:#22225a;color:#dddeff;}
+
+#view-fast{display:none;}#view-qa{display:none;}#view-full{display:none;}#view-loud{display:none;}
+
+.columns{display:grid;grid-template-columns:repeat(4,1fr);gap:0.5rem;align-items:start;}
+.panel{background:var(--panel);border-radius:3px;overflow:hidden;}
+.panel-cpu{border:1px solid var(--green-dim);}
+.panel-cpu .panel-header{background:#0a140a;border-bottom:2px solid var(--green-dim);}
+.panel-cpu .ph-icon-wrap{background:var(--green-muted);border-color:var(--green-dim);}
+.panel-cpu .ph-icon{color:var(--green);}
+.panel-cpu .ph-title{color:var(--green);}
+.panel-cpu .sub-section{background:#0a110a;}
+.panel-cpu .sub-label{color:var(--green-dim);border-color:var(--green-dim);}
+.panel-cpu .metric{border-color:#1a2a1a;}
+.panel-cpu .metric-label{color:#5a9a5a;}
+.panel-cpu .metric-unit{color:#5a9a5a;}
+.panel-cpu .bar-labels{color:#5a9a5a;}
+.panel-voices{border:1px solid var(--cyan-dim);}
+.panel-voices .panel-header{background:#001318;border-bottom:2px solid var(--cyan-dim);}
+.panel-voices .ph-icon-wrap{background:var(--cyan-muted);border-color:var(--cyan-dim);}
+.panel-voices .ph-icon{color:var(--cyan);}
+.panel-voices .ph-title{color:var(--cyan);}
+.panel-voices .sub-section{background:#001018;}
+.panel-voices .sub-label{color:var(--cyan-dim);border-color:var(--cyan-dim);}
+.panel-voices .metric{border-color:#001820;}
+.panel-voices .metric-label{color:#2a7a8a;}
+.panel-voices .metric-unit{color:#2a7a8a;}
+.panel-voices .metric-sublabel{color:#2a7a8a;}
+.panel-mem{border:1px solid var(--pink-dim);}
+.panel-mem .panel-header{background:#130008;border-bottom:2px solid var(--pink-dim);}
+.panel-mem .ph-icon-wrap{background:var(--pink-muted);border-color:var(--pink-dim);}
+.panel-mem .ph-icon{color:var(--pink);}
+.panel-mem .ph-title{color:var(--pink);}
+.panel-mem .sub-section{background:#100008;}
+.panel-mem .sub-label{color:var(--pink-dim);border-color:var(--pink-dim);}
+.panel-mem .metric{border-color:#1e0010;}
+.panel-mem .metric-label{color:#7a3050;}
+.panel-mem .metric-unit{color:#7a3050;}
+.panel-stream{border:1px solid var(--yellow-dim);}
+.panel-stream .panel-header{background:#111000;border-bottom:2px solid var(--yellow-dim);}
+.panel-stream .ph-icon-wrap{background:var(--yellow-muted);border-color:var(--yellow-dim);}
+.panel-stream .ph-icon{color:var(--yellow);}
+.panel-stream .ph-title{color:var(--yellow);}
+.panel-stream .sub-section{background:#0e0c00;}
+.panel-stream .sub-label{color:var(--yellow-dim);border-color:var(--yellow-dim);}
+.panel-stream .metric{border-color:#1c1800;}
+.panel-stream .metric-label{color:#7a6400;}
+.panel-stream .metric-unit{color:#7a6400;}
+
+.panel-header{display:flex;align-items:center;gap:0.7rem;padding:0.7rem 0.85rem;}
+.ph-icon-wrap{width:30px;height:30px;border-radius:3px;border:1px solid;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.ph-icon{font-size:16px;}
+.ph-title{font-weight:700;font-size:17px;letter-spacing:0.06em;}
+.panel-body{padding:0.5rem;}
+.sub-section{border-radius:2px;padding:0.45rem 0.55rem;margin-bottom:0.4rem;}
+.sub-section:last-child{margin-bottom:0;}
+.sub-label{font-size:10px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;padding-bottom:0.3rem;margin-bottom:0.45rem;border-bottom-style:solid;border-bottom-width:1px;}
+.metric{padding:0.4rem 0.45rem;border:1px solid;border-radius:2px;background:var(--bg);margin-bottom:0.3rem;border-left:2px solid var(--green-dim);}
+.metric:last-child{margin-bottom:0;}
+.metric.neutral{border-left-color:var(--text-dim);}
+.metric.ok{border-left-color:var(--green);}
+.metric.warn{border-left-color:var(--amber);}
+.metric.danger{border-left-color:var(--red);}
+.metric-label{font-size:10px;font-weight:500;letter-spacing:0.04em;margin-bottom:3px;text-transform:uppercase;}
+.metric-sublabel{font-size:9px;opacity:0.7;margin-top:3px;letter-spacing:0.03em;}
+.metric-row{display:flex;align-items:baseline;justify-content:space-between;gap:0.3rem;}
+.metric-value{font-size:26px;font-weight:700;color:var(--text-bright);letter-spacing:-0.03em;line-height:1;}
+.metric-value.ok{color:var(--green);}
+.metric-value.warn{color:var(--amber);}
+.metric-value.danger{color:var(--red);}
+.metric-unit{font-size:10px;}
+.bar-wrap{margin:0.4rem 0 0.1rem;}
+.bar-labels{display:flex;justify-content:space-between;font-size:9px;margin-bottom:3px;}
+.bar-track{height:3px;background:var(--bg);border:1px solid var(--border);overflow:hidden;}
+.bar-fill{height:100%;transition:width 0.5s;}
+
+.bottom-bar{display:flex;justify-content:space-between;align-items:center;gap:0.5rem;margin-top:0.75rem;}
+.bottom-left{display:flex;gap:0.5rem;}
+.bottom-right{margin-left:auto;}
+.btn{padding:0.75rem 1.4rem;border-radius:3px;cursor:pointer;font-family:var(--mono);font-size:12px;font-weight:700;letter-spacing:0.08em;border:1px solid;transition:background 0.15s,border-color 0.15s,color 0.15s;text-align:center;white-space:nowrap;display:inline-block;}
+.btn-new{background:transparent;border-color:var(--border2);color:var(--text-dim);font-size:10px;padding:0.65rem 1rem;letter-spacing:0.06em;}
+.btn-new:hover{border-color:var(--text-dim);color:var(--text);}
+.btn-audit{background:var(--green);border-color:var(--green);color:#021a08;}
+.btn-audit:hover{background:#2de05c;}
+.btn-full{background:var(--green-muted);border-color:var(--green);color:var(--green);}
+.btn-full:hover{background:#1f4a2a;color:var(--text-bright);}
+.btn-less{background:transparent;border-color:var(--amber);color:var(--amber);}
+.btn-less:hover{background:rgba(245,166,35,0.08);}
+
+.qa-header{margin-bottom:0.75rem;}
+.qa-title{font-size:13px;font-weight:700;color:var(--green);letter-spacing:0.08em;}
+.qa-sub{font-size:9px;color:var(--text-dim);margin-top:2px;}
+.qa-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:0.5rem;}
+.qa-card{border-radius:3px;overflow:hidden;transition:background 0.2s,border-color 0.2s;}
+.qa-card.state-ok{background:#051205;border:1px solid var(--green-dim);}
+.qa-card.state-warn{background:#1c1200;border:1px solid var(--amber);}
+.qa-card.state-danger{background:#1a0606;border:1px solid var(--red);}
+.qa-card.state-neutral{background:var(--panel);border:1px solid var(--border);}
+.qa-card.state-ok .qa-card-header{background:#071507;border-bottom:1px solid var(--green-dim);}
+.qa-card.state-warn .qa-card-header{background:#221600;border-bottom:1px solid var(--amber);}
+.qa-card.state-danger .qa-card-header{background:#200808;border-bottom:1px solid var(--red);}
+.qa-card.state-neutral .qa-card-header{background:var(--bg2);border-bottom:1px solid var(--border);}
+.qa-card-header{padding:0.5rem 0.75rem;}
+.qa-card-label{font-size:11px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;}
+.qa-card.state-ok .qa-card-label{color:var(--green-dim);}
+.qa-card.state-warn .qa-card-label{color:#8a6000;}
+.qa-card.state-danger .qa-card-label{color:#8a2020;}
+.qa-card.state-neutral .qa-card-label{color:var(--text-label);}
+.qa-card-body{padding:0.75rem;}
+.qa-value{font-size:40px;font-weight:700;letter-spacing:-0.04em;line-height:1;}
+.qa-value.ok{color:var(--green);}
+.qa-value.warn{color:var(--amber);}
+.qa-value.danger{color:var(--red);}
+.qa-value.neutral{color:var(--text-bright);}
+.qa-unit{font-size:12px;margin-top:2px;}
+.qa-card.state-ok .qa-unit{color:var(--green-dim);}
+.qa-card.state-warn .qa-unit{color:#8a6000;}
+.qa-card.state-danger .qa-unit{color:#8a2020;}
+.qa-card.state-neutral .qa-unit{color:var(--text-label);}
+.qa-limit{font-size:9px;margin-top:6px;}
+.qa-card.state-ok .qa-limit{color:var(--green-dim);}
+.qa-card.state-warn .qa-limit{color:#8a6000;}
+.qa-card.state-danger .qa-limit{color:#8a2020;}
+.qa-card.state-neutral .qa-limit{color:var(--text-label);}
+.qa-status{display:inline-block;font-size:10px;font-weight:700;letter-spacing:0.1em;padding:2px 8px;border-radius:2px;margin-top:8px;}
+.qa-status.ok{background:rgba(57,255,106,0.15);color:var(--green);border:1px solid rgba(57,255,106,0.4);}
+.qa-status.warn{background:rgba(245,166,35,0.15);color:var(--amber);border:1px solid rgba(245,166,35,0.4);}
+.qa-status.danger{background:rgba(255,68,68,0.15);color:var(--red);border:1px solid rgba(255,68,68,0.4);}
+.qa-bar-wrap{margin-top:10px;}
+.qa-bar-track{height:4px;overflow:hidden;border-radius:1px;}
+.qa-card.state-ok .qa-bar-track{background:#071507;border:1px solid var(--green-dim);}
+.qa-card.state-warn .qa-bar-track{background:#221600;border:1px solid #4a3000;}
+.qa-card.state-danger .qa-bar-track{background:#200808;border:1px solid #4a1010;}
+.qa-card.state-neutral .qa-bar-track{background:var(--bg);border:1px solid var(--border);}
+.qa-bar-fill{height:100%;transition:width 0.5s;}
+
+.loud-header{margin-bottom:0.75rem;}
+.loud-title{font-size:13px;font-weight:700;color:#a0a0ff;letter-spacing:0.08em;}
+.loud-sub{font-size:9px;color:var(--text-dim);margin-top:2px;}
+.loud-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:0.5rem;}
+.loud-card{background:var(--panel);border:1px solid #1a1a2e;border-radius:3px;overflow:hidden;}
+.loud-card-header{padding:0.5rem 0.75rem;background:#0d0d1a;border-bottom:1px solid #1a1a2e;}
+.loud-card-label{font-size:11px;font-weight:600;color:#7a7aaa;letter-spacing:0.06em;text-transform:uppercase;}
+.loud-card-body{padding:0.75rem;}
+.loud-value{font-size:40px;font-weight:700;letter-spacing:-0.04em;line-height:1;color:var(--text-bright);}
+.loud-value.ok{color:var(--green);}
+.loud-value.warn{color:var(--amber);}
+.loud-value.danger{color:var(--red);}
+.loud-value.neutral{color:var(--text-bright);}
+.loud-unit{font-size:12px;color:#7a7aaa;margin-top:2px;}
+.loud-limit{font-size:9px;color:#7a7aaa;margin-top:6px;}
+.loud-status{display:inline-block;font-size:10px;font-weight:700;letter-spacing:0.1em;padding:2px 8px;border-radius:2px;margin-top:8px;}
+.loud-status.ok{background:rgba(57,255,106,0.12);color:var(--green);border:1px solid rgba(57,255,106,0.3);}
+.loud-status.warn{background:rgba(245,166,35,0.12);color:var(--amber);border:1px solid rgba(245,166,35,0.3);}
+.loud-status.danger{background:rgba(255,68,68,0.12);color:var(--red);border:1px solid rgba(255,68,68,0.3);}
+.loud-status.neutral{background:rgba(160,160,255,0.08);color:#a0a0ff;border:1px solid rgba(160,160,255,0.2);}
+.loud-disclaimer{margin-top:0.75rem;padding:0.65rem 0.8rem;border:1px solid #1a1a2e;border-radius:3px;background:#0a0a14;font-size:9px;color:#5a5a7a;line-height:1.65;letter-spacing:0.02em;}
+.loud-disclaimer strong{color:#7a7aaa;font-weight:700;}
+</style>
+</head>
+<body>
+<div class="root">
+
+<div class="topbar">
+  <div class="dot" id="statusDot"></div>
+  <span class="topbar-title">WWISE PROFILER — SESSION ANALYSIS TOOL</span>
+  <span class="sep">//</span>
+  <span class="meta">dur: <span id="tDuration">—</span></span>
+  <span class="sep">//</span>
+  <span class="meta">frame: <span id="tFrames">—</span></span>
+  <span class="sep">//</span>
+  <span class="meta" id="tFile">no file loaded</span>
+  <div style="margin-left:auto;"><a href="https://paoloeusepi.com" target="_blank" style="color:var(--text-dim);font-size:9px;text-decoration:none;letter-spacing:0.04em;" onmouseover="this.style.color='var(--green)'" onmouseout="this.style.color='var(--text-dim)'"><span style="color:var(--text-dim)">website</span> paoloeusepi.com</a></div>
+</div>
+
+<div id="screen-intro">
+  <div class="drop-zone" id="dropZone">
+    <input type="file" id="fileInput" accept=".txt,.tsv,.csv">
+    <div class="prompt">> drop .txt export here <span class="cursor"></span></div>
+    <div class="hint">or click to select a file</div>
+  </div>
+  <div class="tool-desc">
+    <div class="tool-desc-title">// WHAT THIS TOOL DOES</div>
+    <div class="tool-desc-text">
+      Analyses profiling sessions from <strong>Audiokinetic Wwise</strong> and returns aggregated audio performance metrics: CPU usage, active voices, memory, streamsing and loudness. Designed for <strong>QA audio</strong> on game projects — fast to use, no installation required.
+    </div>
+    <div class="tool-desc-steps">
+      <div><span>01 //</span>Open Wwise and start a game session connected to the Profiler</div>
+      <div><span>02 //</span>In the <strong>Performance Monitor</strong>, start capture with <strong>Start/Stop Capture</strong> (Alt+C)</div>
+      <div><span>03 //</span>Once capture is complete, <strong>right-click on the graph</strong> in the Performance Monitor</div>
+      <div><span>04 //</span>Seleziona <strong>"Save Performance Counters"</strong> — salva un file <strong>.txt</strong></div>
+      <div><span>05 //</span>Drag the .txt file here or click to load it</div>
+    </div>
+    <div class="tool-note">
+      <strong>⚠ Loudness Note —</strong> To have loudness data in the exported file, you must explicitly enable <strong>Loudness Meter</strong> capture in Wwise before starting the session. Go to <strong>Profiler → Show Profiler Settings</strong> (Alt+G) and make sure Loudness entries are enabled. Without this, loudness columns will be absent or empty in the exported file.
+    </div>
+  </div>
+</div>
+
+<div class="action-bar" id="actionBar">
+  <div class="btn-choice btn-fast-c" id="btnFast">
+    <div class="btn-choice-label"><span class="btn-prefix">&gt;</span> FAST ANALYSIS</div>
+    <div class="btn-choice-desc">Panoramica completa della sessione. CPU, voices attive, utilizzo memoria e streamsing — tutti i dati, nessun filtro.</div>
+    <div class="btn-choice-tags"><span class="tag">CPU TOTAL</span><span class="tag">CPU PLUGIN</span><span class="tag">VOICES</span><span class="tag">RAM</span><span class="tag">STREAMING</span><span class="tag">MEDIA SIZE</span></div>
+  </div>
+  <div class="btn-choice btn-qa-c" id="btnQAChoice">
+    <div class="btn-choice-label"><span class="btn-prefix">&gt;&gt;</span> QA AUDIT</div>
+    <div class="btn-choice-desc">Verifica la sessione rispetto ai tuoi hard limit di progetto. Definisci le soglie, ottieni un verdetto immediato per ogni parametro critico.</div>
+    <div class="btn-choice-tags"><span class="tag">HARD LIMITS</span><span class="tag">OK / WARN / CRIT</span><span class="tag">SOGLIE CUSTOM</span></div>
+  </div>
+  <div class="btn-choice btn-loud-c" id="btnLoudChoice">
+    <div class="btn-choice-label"><span class="btn-prefix">♫</span> LOUDNESS CHECK</div>
+    <div class="btn-choice-desc">Stima la loudness della sessione (Instance A). Confronta con target di progetto e verifica l'output peak.</div>
+    <div class="btn-choice-tags"><span class="tag">MOMENTARY MAX</span><span class="tag">SHORT-TERM MAX</span><span class="tag">INTEGRATED (stima)</span><span class="tag">OUTPUT PEAK MAX</span></div>
+  </div>
+</div>
+
+<!-- OVERLAY QA -->
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <div class="modal-title">// QA AUDIT — parameters</div>
+    <div class="modal-sub">Enter your project hard limits. WARN triggers at the configurable threshold.</div>
+    <div class="field"><label>CPU Total — average MAX (%)</label><input type="number" id="qa-cpu-mean" value="15" min="0" max="100" step="0.1"></div>
+    <div class="field"><label>CPU Total — peak MAX (%)</label><input type="number" id="qa-cpu-max" value="30" min="0" max="100" step="0.1"></div>
+    <div class="field"><label>Physical Voices — MAX</label><input type="number" id="qa-phys" value="150" min="0" max="512" step="1"></div>
+    <div class="field"><label>Total Media Size — MAX (MB)</label><input type="number" id="qa-media" value="400" min="0" max="10000" step="1"><div class="field-hint">Sum of SoundBanks loaded in memory</div></div>
+    <div class="warn-row">
+      <label>WARN at:</label>
+      <input type="range" id="qa-warn-pct" min="50" max="99" value="90" step="1">
+      <span id="qa-warn-label">90%</span>
+      <label>of limit</label>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" id="btnCancel">CANCEL</button>
+      <button class="btn-run" id="btnRun">>> RUN AUDIT</button>
+    </div>
+  </div>
+</div>
+
+<!-- OVERLAY LOUDNESS -->
+<div class="overlay" id="overlayLoud">
+  <div class="modal">
+    <div class="modal-title loud">♫ LOUDNESS CHECK — parameters</div>
+    <div class="modal-sub">Set the integrated loudness target and output peak reference (Instance A).</div>
+    <div class="field">
+      <label>Integrated Loudness Target (LUFS)</label>
+      <input type="number" id="ld-target" value="-24" min="-60" max="0" step="0.5">
+      <div class="field-hint">e.g. −23 LUFS (broadcast), −14 LUFS (streaming), −16 LUFS (console)</div>
+    </div>
+    <div class="field-rules">
+      <div style="margin-bottom:2px;color:#7a7aaa;font-weight:700;">Integrated loudness (estimate)</div>
+      <div><span class="rule-ok">OK</span> — within ±2 LUFS from target</div>
+      <div><span class="rule-crit">CRIT</span> — outside ±2 LUFS range</div>
+    </div>
+    <div class="field" style="margin-top:0.75rem;padding-top:0.75rem;border-top:1px solid var(--border);">
+      <label>Output Peak reference (dBFS)</label>
+      <input type="number" id="ld-peak" value="-1" min="-60" max="0" step="0.1">
+    </div>
+    <div class="field-rules">
+      <div style="margin-bottom:2px;color:#7a7aaa;font-weight:700;">Output Peak max</div>
+      <div><span class="rule-ok">OK</span> — below −2 dBFS</div>
+      <div><span class="rule-warn">WARN</span> — between −2 and −1 dBFS</div>
+      <div><span class="rule-crit">CRIT</span> — above −1 dBFS</div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" id="btnCancelLoud">CANCEL</button>
+      <button class="btn-run btn-run-loud" id="btnRunLoud">♫ ANALYSE LOUDNESS</button>
+    </div>
+  </div>
+</div>
+
+<!-- FAST VIEW -->
+<div id="view-fast">
+  <div class="columns">
+    <div class="panel panel-cpu">
+      <div class="panel-header"><div class="ph-icon-wrap"><i class="ti ti-cpu ph-icon"></i></div><span class="ph-title">CPU</span></div>
+      <div class="panel-body">
+        <div class="sub-section"><div class="sub-label">Total</div>
+          <div class="metric neutral" id="p-cpu-mean"><div class="metric-label">Average</div><div class="metric-row"><div><span class="metric-value" id="v-cpu-mean">—</span><span class="metric-unit"> %</span></div></div></div>
+          <div class="metric neutral" id="p-cpu-max"><div class="metric-label">Peak</div><div class="metric-row"><div><span class="metric-value" id="v-cpu-max">—</span><span class="metric-unit"> %</span></div></div></div>
+          <div class="bar-wrap"><div class="bar-labels"><span>peak / scale 20%</span><span id="b-p95">P95 —</span></div><div class="bar-track"><div class="bar-fill" id="bar-cpu" style="width:0%"></div></div></div>
+        </div>
+        <div class="sub-section"><div class="sub-label">Plugin</div>
+          <div class="metric neutral" id="p-plg-mean"><div class="metric-label">Average</div><div class="metric-row"><div><span class="metric-value" id="v-plg-mean">—</span><span class="metric-unit"> %</span></div></div></div>
+          <div class="metric neutral" id="p-plg-max"><div class="metric-label">Peak</div><div class="metric-row"><div><span class="metric-value" id="v-plg-max">—</span><span class="metric-unit"> %</span></div></div></div>
+        </div>
+      </div>
+    </div>
+    <div class="panel panel-voices">
+      <div class="panel-header"><div class="ph-icon-wrap"><i class="ti ti-wave-sine ph-icon"></i></div><span class="ph-title">VOICES</span></div>
+      <div class="panel-body">
+        <div class="sub-section"><div class="sub-label">Physical</div>
+          <div class="metric neutral" id="p-phys-max"><div class="metric-label">Peak</div><div class="metric-row"><div><span class="metric-value" id="v-phys-max">—</span><span class="metric-unit"> voices</span></div></div></div>
+          <div class="metric neutral" id="p-phys-mean"><div class="metric-label">Average</div><div class="metric-row"><div><span class="metric-value" id="v-phys-mean">—</span><span class="metric-unit"> voices</span></div></div></div>
+        </div>
+        <div class="sub-section"><div class="sub-label">Virtual</div>
+          <div class="metric neutral" id="p-virt-max"><div class="metric-label">Peak</div><div class="metric-row"><div><span class="metric-value" id="v-virt-max">—</span><span class="metric-unit"> voices</span></div></div></div>
+        </div>
+        <div class="sub-section"><div class="sub-label">Total</div>
+          <div class="metric neutral" id="p-tot-max"><div class="metric-label">Peak</div><div class="metric-row"><div><span class="metric-value" id="v-tot-max">—</span><span class="metric-unit"> voices</span></div></div></div>
+          <div class="metric neutral" id="p-ratio"><div class="metric-label">Phys / Total</div><div class="metric-row"><div><span class="metric-value" id="v-ratio">—</span><span class="metric-unit"> %</span></div></div><div class="metric-sublabel">session average</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="panel panel-mem">
+      <div class="panel-header"><div class="ph-icon-wrap"><i class="ti ti-database ph-icon"></i></div><span class="ph-title">MEMORY</span></div>
+      <div class="panel-body">
+        <div class="sub-section"><div class="sub-label">Wwise RAM</div>
+          <div class="metric neutral" id="p-mem-max"><div class="metric-label">Peak</div><div class="metric-row"><div><span class="metric-value" id="v-mem-max">—</span><span class="metric-unit"> MB</span></div></div></div>
+          <div class="metric neutral" id="p-mem-mean"><div class="metric-label">Average</div><div class="metric-row"><div><span class="metric-value" id="v-mem-mean">—</span><span class="metric-unit"> MB</span></div></div></div>
+          <div class="metric neutral" id="p-mem-res"><div class="metric-label">Reserved</div><div class="metric-row"><div><span class="metric-value" id="v-mem-res">—</span><span class="metric-unit"> MB</span></div></div></div>
+        </div>
+        <div class="sub-section"><div class="sub-label">Assets</div>
+          <div class="metric neutral" id="p-media"><div class="metric-label">Loaded Media</div><div class="metric-row"><div><span class="metric-value" id="v-media">—</span><span class="metric-unit"> MB</span></div></div></div>
+          <div class="metric neutral" id="p-banks"><div class="metric-label">SoundBanks</div><div class="metric-row"><div><span class="metric-value" id="v-banks">—</span><span class="metric-unit"> MB</span></div></div></div>
+        </div>
+      </div>
+    </div>
+    <div class="panel panel-stream">
+      <div class="panel-header"><div class="ph-icon-wrap"><i class="ti ti-antenna ph-icon"></i></div><span class="ph-title">STREAMING</span></div>
+      <div class="panel-body">
+        <div class="sub-section"><div class="sub-label">Stream</div>
+          <div class="metric neutral" id="p-str-max"><div class="metric-label">Active — peak</div><div class="metric-row"><div><span class="metric-value" id="v-str-max">—</span><span class="metric-unit"> streams</span></div></div></div>
+        </div>
+        <div class="sub-section"><div class="sub-label">Bandwidth</div>
+          <div class="metric neutral" id="p-bw-max"><div class="metric-label">Peak</div><div class="metric-row"><div><span class="metric-value" id="v-bw-max">—</span><span class="metric-unit"> KB/s</span></div></div></div>
+          <div class="metric neutral" id="p-bw-mean"><div class="metric-label">Average</div><div class="metric-row"><div><span class="metric-value" id="v-bw-mean">—</span><span class="metric-unit"> KB/s</span></div></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="bottom-bar">
+    <div class="bottom-left"><div class="btn btn-audit" id="btnAuditFromFast">>> QA AUDIT</div></div>
+    <div class="bottom-right"><div class="btn btn-new" id="btnNewFast">↺ NEW ANALYSIS</div></div>
+  </div>
+</div>
+
+<!-- QA VIEW -->
+<div id="view-qa">
+  <div class="qa-header"><div class="qa-title">// QA AUDIT REPORT</div><div class="qa-sub" id="qa-sub-line">—</div></div>
+  <div class="qa-grid">
+    <div class="qa-card state-neutral" id="qac-cpu-mean"><div class="qa-card-header"><div class="qa-card-label">CPU Total — average</div></div><div class="qa-card-body"><div class="qa-value neutral" id="qa-v-cpu-mean">—</div><div class="qa-unit">%</div><div class="qa-limit" id="qa-l-cpu-mean">—</div><div class="qa-status" id="qa-s-cpu-mean"></div><div class="qa-bar-wrap"><div class="qa-bar-track"><div class="qa-bar-fill" id="qa-bar-cpu-mean" style="width:0%"></div></div></div></div></div>
+    <div class="qa-card state-neutral" id="qac-cpu-max"><div class="qa-card-header"><div class="qa-card-label">CPU Total — peak</div></div><div class="qa-card-body"><div class="qa-value neutral" id="qa-v-cpu-max">—</div><div class="qa-unit">%</div><div class="qa-limit" id="qa-l-cpu-max">—</div><div class="qa-status" id="qa-s-cpu-max"></div><div class="qa-bar-wrap"><div class="qa-bar-track"><div class="qa-bar-fill" id="qa-bar-cpu-max" style="width:0%"></div></div></div></div></div>
+    <div class="qa-card state-neutral" id="qac-phys"><div class="qa-card-header"><div class="qa-card-label">Physical Voices — peak</div></div><div class="qa-card-body"><div class="qa-value neutral" id="qa-v-phys">—</div><div class="qa-unit">voci</div><div class="qa-limit" id="qa-l-phys">—</div><div class="qa-status" id="qa-s-phys"></div><div class="qa-bar-wrap"><div class="qa-bar-track"><div class="qa-bar-fill" id="qa-bar-phys" style="width:0%"></div></div></div></div></div>
+    <div class="qa-card state-neutral" id="qac-media"><div class="qa-card-header"><div class="qa-card-label">Total Media Size</div></div><div class="qa-card-body"><div class="qa-value neutral" id="qa-v-media">—</div><div class="qa-unit">MB</div><div class="qa-limit" id="qa-l-media">—</div><div class="qa-status" id="qa-s-media"></div><div class="qa-bar-wrap"><div class="qa-bar-track"><div class="qa-bar-fill" id="qa-bar-media" style="width:0%"></div></div></div></div></div>
+  </div>
+  <div class="bottom-bar">
+    <div class="bottom-left"><div class="btn btn-full" id="btnFull">&gt; FULL DETAILS</div></div>
+    <div class="bottom-right"><div class="btn btn-new" id="btnNewQA">↺ NEW ANALYSIS</div></div>
+  </div>
+</div>
+
+<!-- FULL VIEW -->
+<div id="view-full">
+  <div class="columns">
+    <div class="panel panel-cpu">
+      <div class="panel-header"><div class="ph-icon-wrap"><i class="ti ti-cpu ph-icon"></i></div><span class="ph-title">CPU</span></div>
+      <div class="panel-body">
+        <div class="sub-section"><div class="sub-label">Total</div>
+          <div class="metric neutral" id="fp-cpu-mean"><div class="metric-label">Average</div><div class="metric-row"><div><span class="metric-value" id="fv-cpu-mean">—</span><span class="metric-unit"> %</span></div></div></div>
+          <div class="metric neutral" id="fp-cpu-max"><div class="metric-label">Peak</div><div class="metric-row"><div><span class="metric-value" id="fv-cpu-max">—</span><span class="metric-unit"> %</span></div></div></div>
+          <div class="bar-wrap"><div class="bar-labels"><span>peak / scale 20%</span><span id="fb-p95">P95 —</span></div><div class="bar-track"><div class="bar-fill" id="fbar-cpu" style="width:0%"></div></div></div>
+        </div>
+        <div class="sub-section"><div class="sub-label">Plugin</div>
+          <div class="metric neutral" id="fp-plg-mean"><div class="metric-label">Average</div><div class="metric-row"><div><span class="metric-value" id="fv-plg-mean">—</span><span class="metric-unit"> %</span></div></div></div>
+          <div class="metric neutral" id="fp-plg-max"><div class="metric-label">Peak</div><div class="metric-row"><div><span class="metric-value" id="fv-plg-max">—</span><span class="metric-unit"> %</span></div></div></div>
+        </div>
+      </div>
+    </div>
+    <div class="panel panel-voices">
+      <div class="panel-header"><div class="ph-icon-wrap"><i class="ti ti-wave-sine ph-icon"></i></div><span class="ph-title">VOICES</span></div>
+      <div class="panel-body">
+        <div class="sub-section"><div class="sub-label">Physical</div>
+          <div class="metric neutral" id="fp-phys-max"><div class="metric-label">Peak</div><div class="metric-row"><div><span class="metric-value" id="fv-phys-max">—</span><span class="metric-unit"> voices</span></div></div></div>
+          <div class="metric neutral" id="fp-phys-mean"><div class="metric-label">Average</div><div class="metric-row"><div><span class="metric-value" id="fv-phys-mean">—</span><span class="metric-unit"> voices</span></div></div></div>
+        </div>
+        <div class="sub-section"><div class="sub-label">Virtual</div>
+          <div class="metric neutral" id="fp-virt-max"><div class="metric-label">Peak</div><div class="metric-row"><div><span class="metric-value" id="fv-virt-max">—</span><span class="metric-unit"> voices</span></div></div></div>
+        </div>
+        <div class="sub-section"><div class="sub-label">Total</div>
+          <div class="metric neutral" id="fp-tot-max"><div class="metric-label">Peak</div><div class="metric-row"><div><span class="metric-value" id="fv-tot-max">—</span><span class="metric-unit"> voices</span></div></div></div>
+          <div class="metric neutral" id="fp-ratio"><div class="metric-label">Phys / Total</div><div class="metric-row"><div><span class="metric-value" id="fv-ratio">—</span><span class="metric-unit"> %</span></div></div><div class="metric-sublabel">session average</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="panel panel-mem">
+      <div class="panel-header"><div class="ph-icon-wrap"><i class="ti ti-database ph-icon"></i></div><span class="ph-title">MEMORY</span></div>
+      <div class="panel-body">
+        <div class="sub-section"><div class="sub-label">Wwise RAM</div>
+          <div class="metric neutral" id="fp-mem-max"><div class="metric-label">Peak</div><div class="metric-row"><div><span class="metric-value" id="fv-mem-max">—</span><span class="metric-unit"> MB</span></div></div></div>
+          <div class="metric neutral" id="fp-mem-mean"><div class="metric-label">Average</div><div class="metric-row"><div><span class="metric-value" id="fv-mem-mean">—</span><span class="metric-unit"> MB</span></div></div></div>
+          <div class="metric neutral" id="fp-mem-res"><div class="metric-label">Reserved</div><div class="metric-row"><div><span class="metric-value" id="fv-mem-res">—</span><span class="metric-unit"> MB</span></div></div></div>
+        </div>
+        <div class="sub-section"><div class="sub-label">Assets</div>
+          <div class="metric neutral" id="fp-media"><div class="metric-label">Loaded Media</div><div class="metric-row"><div><span class="metric-value" id="fv-media">—</span><span class="metric-unit"> MB</span></div></div></div>
+          <div class="metric neutral" id="fp-banks"><div class="metric-label">SoundBanks</div><div class="metric-row"><div><span class="metric-value" id="fv-banks">—</span><span class="metric-unit"> MB</span></div></div></div>
+        </div>
+      </div>
+    </div>
+    <div class="panel panel-stream">
+      <div class="panel-header"><div class="ph-icon-wrap"><i class="ti ti-antenna ph-icon"></i></div><span class="ph-title">STREAMING</span></div>
+      <div class="panel-body">
+        <div class="sub-section"><div class="sub-label">Stream</div>
+          <div class="metric neutral" id="fp-str-max"><div class="metric-label">Active — peak</div><div class="metric-row"><div><span class="metric-value" id="fv-str-max">—</span><span class="metric-unit"> streams</span></div></div></div>
+        </div>
+        <div class="sub-section"><div class="sub-label">Bandwidth</div>
+          <div class="metric neutral" id="fp-bw-max"><div class="metric-label">Peak</div><div class="metric-row"><div><span class="metric-value" id="fv-bw-max">—</span><span class="metric-unit"> KB/s</span></div></div></div>
+          <div class="metric neutral" id="fp-bw-mean"><div class="metric-label">Average</div><div class="metric-row"><div><span class="metric-value" id="fv-bw-mean">—</span><span class="metric-unit"> KB/s</span></div></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="bottom-bar">
+    <div class="bottom-left"><div class="btn btn-less" id="btnBackToQA">&lt; LESS DETAILS</div></div>
+    <div class="bottom-right"><div class="btn btn-new" id="btnNewFull">↺ NEW ANALYSIS</div></div>
+  </div>
+</div>
+
+<!-- LOUDNESS VIEW -->
+<div id="view-loud">
+  <div class="loud-header"><div class="loud-title">♫ LOUDNESS CHECK — Instance A</div><div class="loud-sub" id="loud-sub-line">—</div></div>
+  <div class="loud-grid">
+    <div class="loud-card"><div class="loud-card-header"><div class="loud-card-label">Momentary Loudness — max</div></div><div class="loud-card-body"><div class="loud-value neutral" id="ld-v-mom">—</div><div class="loud-unit">LUFS</div><div class="loud-limit">Maximum instantaneous peak detected</div><div class="loud-status neutral" id="ld-s-mom">INFO</div></div></div>
+    <div class="loud-card"><div class="loud-card-header"><div class="loud-card-label">Short-term Loudness — max</div></div><div class="loud-card-body"><div class="loud-value neutral" id="ld-v-st">—</div><div class="loud-unit">LUFS</div><div class="loud-limit">Maximum over 3-second windows</div><div class="loud-status neutral" id="ld-s-st">INFO</div></div></div>
+    <div class="loud-card"><div class="loud-card-header"><div class="loud-card-label">Integrated Loudness — estimate</div></div><div class="loud-card-body"><div class="loud-value neutral" id="ld-v-int">—</div><div class="loud-unit">LUFS</div><div class="loud-limit" id="ld-l-int">target: — LUFS  //  range ±2</div><div class="loud-status neutral" id="ld-s-int"></div></div></div>
+    <div class="loud-card"><div class="loud-card-header"><div class="loud-card-label">Output Peak — max</div></div><div class="loud-card-body"><div class="loud-value neutral" id="ld-v-peak">—</div><div class="loud-unit">dBFS</div><div class="loud-limit">OK &lt; −2  //  WARN −2→−1  //  CRIT &gt; −1</div><div class="loud-status neutral" id="ld-s-peak"></div></div></div>
+  </div>
+  <div class="loud-disclaimer"><strong>⚠ METHODOLOGICAL NOTE —</strong> The integrated loudness value is an <strong>approximation</strong> computed as the average of Short-term values across the entire session, excluding frames below a gate threshold of approximately −70 LUFS — base behaviour of the ITU-R BS.1770 algorithm. It is not identical to a true integrated value measured in real time by a dedicated loudness meter, but provides a reasonable estimate for QA purposes. For accurate values, use dedicated tools such as a <strong>Loudness Meter</strong> (es. Youlean, WLM Plus, MeterPlugs).</div>
+  <div class="bottom-bar">
+    <div class="bottom-left"></div>
+    <div class="bottom-right"><div class="btn btn-new" id="btnNewLoud">↺ NEW ANALYSIS</div></div>
+  </div>
+</div>
+
+</div>
+
+<script>
+// Favicon SVG inline
+(function(){
+  const svg=`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='4' fill='%230a0c0a'/><polyline points='2,16 6,16 8,8 10,24 12,12 14,20 16,10 18,22 20,14 22,18 24,16 30,16' fill='none' stroke='%2339ff6a' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/></svg>`;
+  const link=document.createElement('link');
+  link.rel='icon';link.type='image/svg+xml';
+  link.href='data:image/svg+xml,'+svg;
+  document.head.appendChild(link);
+})();
+
+const dropZone=document.getElementById('dropZone');
+const fileInput=document.getElementById('fileInput');
+let parsed=null,qaParams=null;
+
+dropZone.addEventListener('click',()=>fileInput.click());
+dropZone.addEventListener('dragover',e=>{e.preventDefault();dropZone.classList.add('drag-over');});
+dropZone.addEventListener('dragleave',()=>dropZone.classList.remove('drag-over'));
+dropZone.addEventListener('drop',e=>{e.preventDefault();dropZone.classList.remove('drag-over');handleFile(e.dataTransfer.files[0]);});
+fileInput.addEventListener('change',e=>handleFile(e.target.files[0]));
+document.getElementById('btnFast').addEventListener('click',showFast);
+document.getElementById('btnQAChoice').addEventListener('click',()=>document.getElementById('overlay').classList.add('visible'));
+document.getElementById('btnLoudChoice').addEventListener('click',()=>document.getElementById('overlayLoud').classList.add('visible'));
+document.getElementById('btnCancel').addEventListener('click',()=>document.getElementById('overlay').classList.remove('visible'));
+document.getElementById('btnCancelLoud').addEventListener('click',()=>document.getElementById('overlayLoud').classList.remove('visible'));
+document.getElementById('btnRun').addEventListener('click',runAudit);
+document.getElementById('btnRunLoud').addEventListener('click',runLoudness);
+document.getElementById('btnFull').addEventListener('click',()=>showView('full'));
+document.getElementById('btnBackToQA').addEventListener('click',()=>showView('qa'));
+document.getElementById('btnAuditFromFast').addEventListener('click',()=>document.getElementById('overlay').classList.add('visible'));
+['btnNewFast','btnNewQA','btnNewFull','btnNewLoud'].forEach(id=>document.getElementById(id).addEventListener('click',resetAll));
+const warnSlider=document.getElementById('qa-warn-pct');
+const warnLabel=document.getElementById('qa-warn-label');
+warnSlider.addEventListener('input',()=>warnLabel.textContent=warnSlider.value+'%');
+
+function handleFile(f){if(!f)return;const r=new FileReader();r.onload=e=>parseData(e.target.result,f.name);r.readAsText(f);}
+function col(rows,name){return rows.map(r=>parseFloat(r[name])).filter(v=>!isNaN(v));}
+function mean(a){return a.length?a.reduce((x,y)=>x+y,0)/a.length:0;}
+function max(a){return a.length?Math.max(...a):0;}
+function p95(a){if(!a.length)return 0;const s=[...a].sort((x,y)=>x-y);return s[Math.floor(s.length*0.95)];}
+
+function resetAll(){
+  parsed=null;qaParams=null;
+  showView(null);
+  document.getElementById('actionBar').classList.remove('visible');
+  document.getElementById('screen-intro').style.display='block';
+  fileInput.value='';
+  document.getElementById('tDuration').textContent='—';document.getElementById('tFrames').textContent='—';
+  const fEl=document.getElementById('tFile');fEl.textContent='no file loaded';fEl.style.color='';
+  document.getElementById('statusDot').classList.remove('on');
+}
+
+function parseData(text,fileName){
+  const lines=text.split(/\r?\n/).filter(l=>l.trim());
+  const headers=lines[0].split('\t');
+  const rows=lines.slice(1).map(l=>{const vals=l.split('\t');const o={};headers.forEach((h,i)=>o[h.trim()]=vals[i]);return o;}).filter(r=>Object.keys(r).length>1);
+  const times=col(rows,'Time (Milliseconds)');
+  const dur=times.length?((max(times)-times[0])/1000).toFixed(1)+'s':'—';
+  const mediaCols=['Loaded Media (Memory - Wwise) (Bytes)','Loaded Media (Memory - Integration) (Bytes)','Loaded Banks (Memory - Wwise) (Bytes)','Loaded Banks (Memory - Integration) (Bytes)'];
+  let bestMediaMax=0;mediaCols.forEach(c=>{const v=max(col(rows,c))/1048576;if(v>bestMediaMax)bestMediaMax=v;});
+  const ratioFrames=rows.map(r=>{const p=parseFloat(r['Number of Voices (Physical)']);const t=parseFloat(r['Number of Voices (Total)']);return(t>0&&!isNaN(p)&&!isNaN(t))?p/t*100:null;}).filter(v=>v!==null);
+  const momA=col(rows,'Loudness Momentary/Instance A').filter(v=>v>-96);
+  const stA=col(rows,'Loudness Short-term/Instance A').filter(v=>v>-96);
+  const stGated=stA.filter(v=>v>-70);
+  const peakRaw=col(rows,'Output Peak');
+  parsed={fileName,dur,frames:rows.length,
+    cpuMean:mean(col(rows,'CPU - Total (%)')),cpuMax:max(col(rows,'CPU - Total (%)')),cpuP95:p95(col(rows,'CPU - Total (%)')),
+    plgMean:mean(col(rows,'CPU - Plug-in Total (%)')),plgMax:max(col(rows,'CPU - Plug-in Total (%)')),
+    physMax:max(col(rows,'Number of Voices (Physical)')),physMean:mean(col(rows,'Number of Voices (Physical)')),
+    virtMax:max(col(rows,'Number of Voices (Virtual)')),totMax:max(col(rows,'Number of Voices (Total)')),ratioMean:mean(ratioFrames),
+    memMax:max(col(rows,'Total Used Memory (Bytes)'))/1048576,memMean:mean(col(rows,'Total Used Memory (Bytes)'))/1048576,memRes:max(col(rows,'Total Reserved Memory (Bytes)'))/1048576,
+    mediaMax:bestMediaMax,banksMax:max(col(rows,'Loaded Banks (Memory - Wwise) (Bytes)'))/1048576||max(col(rows,'Loaded Banks (Memory - Integration) (Bytes)'))/1048576,
+    strMax:max(col(rows,'Number of Streams (Active)')),bwMax:max(col(rows,'Total Streaming Bandwidth (Bytes/Sec)'))/1024,bwMean:mean(col(rows,'Total Streaming Bandwidth (Bytes/Sec)'))/1024,
+    momMax:momA.length?max(momA):null,stMax:stA.length?max(stA):null,
+    intEstimate:stGated.length?mean(stGated):null,peakDbfs:peakRaw.length?max(peakRaw):null};
+  document.getElementById('tDuration').textContent=dur;document.getElementById('tFrames').textContent=rows.length;
+  const fEl=document.getElementById('tFile');fEl.textContent=fileName;fEl.style.color='var(--green)';
+  document.getElementById('statusDot').classList.add('on');
+  document.getElementById('screen-intro').style.display='none';
+  document.getElementById('actionBar').classList.add('visible');
+  showView(null);
+}
+
+function showView(v){
+  ['view-fast','view-qa','view-full','view-loud'].forEach(id=>document.getElementById(id).style.display='none');
+  document.getElementById('actionBar').style.display=(v===null&&parsed)?'flex':'none';
+  if(v==='fast'){document.getElementById('view-fast').style.display='block';populateFast();}
+  if(v==='qa'){document.getElementById('view-qa').style.display='block';}
+  if(v==='full'){document.getElementById('view-full').style.display='block';populateFull();}
+  if(v==='loud'){document.getElementById('view-loud').style.display='block';}
+}
+function showFast(){document.getElementById('overlay').classList.remove('visible');showView('fast');}
+function setVal(id,val){const el=document.getElementById(id);if(el)el.textContent=val;}
+
+function populateFast(){
+  const d=parsed;
+  setVal('v-cpu-mean',d.cpuMean.toFixed(2));setVal('v-cpu-max',d.cpuMax.toFixed(2));
+  setVal('v-plg-mean',d.plgMean.toFixed(2));setVal('v-plg-max',d.plgMax.toFixed(2));
+  document.getElementById('b-p95').textContent='P95: '+d.cpuP95.toFixed(2)+'%';
+  const bar=document.getElementById('bar-cpu');
+  bar.style.width=Math.min(100,(d.cpuMax/20)*100).toFixed(1)+'%';
+  bar.style.background=d.cpuMax>=15?'var(--red)':d.cpuMax>=8?'var(--amber)':'var(--green)';
+  setVal('v-phys-max',Math.round(d.physMax));setVal('v-phys-mean',d.physMean.toFixed(1));
+  setVal('v-virt-max',Math.round(d.virtMax));setVal('v-tot-max',Math.round(d.totMax));setVal('v-ratio',d.ratioMean.toFixed(1));
+  setVal('v-mem-max',d.memMax.toFixed(1));setVal('v-mem-mean',d.memMean.toFixed(1));setVal('v-mem-res',d.memRes.toFixed(1));
+  setVal('v-media',d.mediaMax.toFixed(1));setVal('v-banks',d.banksMax.toFixed(1));
+  setVal('v-str-max',Math.round(d.strMax));setVal('v-bw-max',d.bwMax.toFixed(1));setVal('v-bw-mean',d.bwMean.toFixed(1));
+}
+
+function auditCls(val,limit,wp){return val>=limit?'danger':val>=limit*(wp/100)?'warn':'ok';}
+function auditLabel(c){return c==='ok'?'OK':c==='warn'?'WARN':'CRIT';}
+function auditColor(c){return c==='ok'?'var(--green)':c==='warn'?'var(--amber)':'var(--red)';}
+
+function setQACard(cardId,valId,limitId,statusId,barId,val,display,limit,wp,unit){
+  const c=auditCls(val,limit,wp);
+  const card=document.getElementById(cardId);if(card)card.className='qa-card state-'+(c==='ok'?'ok':c==='warn'?'warn':'danger');
+  const vEl=document.getElementById(valId);if(vEl){vEl.textContent=display;vEl.className='qa-value '+c;}
+  const lEl=document.getElementById(limitId);if(lEl)lEl.textContent='limit: '+limit+' '+unit+'  //  warn @ '+wp+'%';
+  const sEl=document.getElementById(statusId);if(sEl){sEl.textContent=auditLabel(c);sEl.className='qa-status '+c;}
+  const bEl=document.getElementById(barId);if(bEl){bEl.style.width=Math.min(100,(val/limit)*100).toFixed(1)+'%';bEl.style.background=auditColor(c);}
+}
+
+function runAudit(){
+  document.getElementById('overlay').classList.remove('visible');
+  const d=parsed;
+  const lCpuMean=parseFloat(document.getElementById('qa-cpu-mean').value);
+  const lCpuMax=parseFloat(document.getElementById('qa-cpu-max').value);
+  const lPhys=parseFloat(document.getElementById('qa-phys').value);
+  const lMedia=parseFloat(document.getElementById('qa-media').value);
+  const wp=parseInt(warnSlider.value);
+  qaParams={lCpuMean,lCpuMax,lPhys,lMedia,wp};
+  document.getElementById('qa-sub-line').textContent='file: '+d.fileName+' // '+d.frames+' frame // warn @ '+wp+'%';
+  setQACard('qac-cpu-mean','qa-v-cpu-mean','qa-l-cpu-mean','qa-s-cpu-mean','qa-bar-cpu-mean',d.cpuMean,d.cpuMean.toFixed(2),lCpuMean,wp,'%');
+  setQACard('qac-cpu-max','qa-v-cpu-max','qa-l-cpu-max','qa-s-cpu-max','qa-bar-cpu-max',d.cpuMax,d.cpuMax.toFixed(2),lCpuMax,wp,'%');
+  setQACard('qac-phys','qa-v-phys','qa-l-phys','qa-s-phys','qa-bar-phys',d.physMax,Math.round(d.physMax),lPhys,wp,'voci');
+  setQACard('qac-media','qa-v-media','qa-l-media','qa-s-media','qa-bar-media',d.mediaMax,d.mediaMax.toFixed(1),lMedia,wp,'MB');
+  showView('qa');
+}
+
+function runLoudness(){
+  document.getElementById('overlayLoud').classList.remove('visible');
+  const d=parsed;const target=parseFloat(document.getElementById('ld-target').value);
+  document.getElementById('loud-sub-line').textContent='file: '+d.fileName+' // '+d.frames+' frame // target: '+target+' LUFS  range ±2';
+  const momEl=document.getElementById('ld-v-mom');const momSEl=document.getElementById('ld-s-mom');
+  if(d.momMax!==null){momEl.textContent=d.momMax.toFixed(1);momEl.className='loud-value neutral';momSEl.textContent='INFO';momSEl.className='loud-status neutral';}
+  else{momEl.textContent='N/D';}
+  const stEl=document.getElementById('ld-v-st');const stSEl=document.getElementById('ld-s-st');
+  if(d.stMax!==null){stEl.textContent=d.stMax.toFixed(1);stEl.className='loud-value neutral';stSEl.textContent='INFO';stSEl.className='loud-status neutral';}
+  else{stEl.textContent='N/D';}
+  const intEl=document.getElementById('ld-v-int');const intSEl=document.getElementById('ld-s-int');const intLEl=document.getElementById('ld-l-int');
+  if(d.intEstimate!==null){
+    const diff=d.intEstimate-target;const intCls=Math.abs(diff)<=2?'ok':'danger';
+    intEl.textContent=d.intEstimate.toFixed(1);intEl.className='loud-value '+intCls;
+    intLEl.textContent='target: '+target+' LUFS  //  range ±2  //  diff: '+(diff>0?'+':'')+diff.toFixed(1);
+    intSEl.textContent=intCls==='ok'?'OK':'CRIT';intSEl.className='loud-status '+intCls;
+  }else{intEl.textContent='N/D';intSEl.className='loud-status neutral';}
+  const pkEl=document.getElementById('ld-v-peak');const pkSEl=document.getElementById('ld-s-peak');
+  if(d.peakDbfs!==null){
+    pkEl.textContent=d.peakDbfs.toFixed(1);
+    let pkCls,pkLabel;
+    if(d.peakDbfs>-1){pkCls='danger';pkLabel='CRIT';}else if(d.peakDbfs>=-2){pkCls='warn';pkLabel='WARN';}else{pkCls='ok';pkLabel='OK';}
+    pkEl.className='loud-value '+pkCls;pkSEl.textContent=pkLabel;pkSEl.className='loud-status '+pkCls;
+  }else{pkEl.textContent='N/D';pkSEl.className='loud-status neutral';}
+  showView('loud');
+}
+
+function populateFull(){
+  const d=parsed;
+  setVal('fv-cpu-mean',d.cpuMean.toFixed(2));setVal('fv-cpu-max',d.cpuMax.toFixed(2));
+  setVal('fv-plg-mean',d.plgMean.toFixed(2));setVal('fv-plg-max',d.plgMax.toFixed(2));
+  document.getElementById('fb-p95').textContent='P95: '+d.cpuP95.toFixed(2)+'%';
+  const bar=document.getElementById('fbar-cpu');
+  bar.style.width=Math.min(100,(d.cpuMax/20)*100).toFixed(1)+'%';
+  bar.style.background=d.cpuMax>=15?'var(--red)':d.cpuMax>=8?'var(--amber)':'var(--green)';
+  setVal('fv-phys-max',Math.round(d.physMax));setVal('fv-phys-mean',d.physMean.toFixed(1));
+  setVal('fv-virt-max',Math.round(d.virtMax));setVal('fv-tot-max',Math.round(d.totMax));setVal('fv-ratio',d.ratioMean.toFixed(1));
+  setVal('fv-mem-max',d.memMax.toFixed(1));setVal('fv-mem-mean',d.memMean.toFixed(1));setVal('fv-mem-res',d.memRes.toFixed(1));
+  setVal('fv-media',d.mediaMax.toFixed(1));setVal('fv-banks',d.banksMax.toFixed(1));
+  setVal('fv-str-max',Math.round(d.strMax));setVal('fv-bw-max',d.bwMax.toFixed(1));setVal('fv-bw-mean',d.bwMean.toFixed(1));
+  if(!qaParams)return;
+  const{lCpuMean,lCpuMax,lPhys,lMedia,wp}=qaParams;
+  const ac=(val,lim)=>auditCls(val,lim,wp);
+  const applyM=(pid,vid,c)=>{const p=document.getElementById(pid);const v=document.getElementById(vid);if(p)p.className='metric '+c;if(v)v.className='metric-value '+c;};
+  applyM('fp-cpu-mean','fv-cpu-mean',ac(d.cpuMean,lCpuMean));
+  applyM('fp-cpu-max','fv-cpu-max',ac(d.cpuMax,lCpuMax));
+  applyM('fp-phys-max','fv-phys-max',ac(d.physMax,lPhys));
+  applyM('fp-media','fv-media',ac(d.mediaMax,lMedia));
+  applyM('fp-banks','fv-banks',ac(d.banksMax,lMedia));
+}
+</script>
+</body>
+</html>

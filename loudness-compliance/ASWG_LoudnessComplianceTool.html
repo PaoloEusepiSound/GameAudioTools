@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ASWG-R001 Loudness Compliance Tool</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg:#08080f;--bg2:#0d0d1a;--bg3:#111128;--panel:#0a0a14;
+  --border:#1a1a2e;--border2:#252540;
+  --purple:#a78bfa;--purple-dim:#4c3a8a;--purple-muted:#1a1530;
+  --violet:#c4b5fd;
+  --green:#39ff6a;--green-dim:#1a7a32;
+  --amber:#f5a623;--red:#ff4444;
+  --text:#c4b5fd;--text-dim:#5a5a8a;--text-bright:#ede9fe;
+  --text-label:#9c8fda;
+  --mono:'JetBrains Mono',monospace;
+}
+body{background:var(--bg);color:var(--text);font-family:var(--mono);font-size:12px;line-height:1.4;min-height:100vh;}
+.root{padding:0.6rem;position:relative;max-width:1400px;margin:0 auto;}
+
+.topbar{display:flex;align-items:center;gap:0.5rem;padding:0.4rem 0.75rem;background:var(--bg2);border:1px solid var(--border);border-radius:3px;margin-bottom:0.5rem;font-size:10px;letter-spacing:0.04em;}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--purple-dim);flex-shrink:0;}
+.dot.on{background:var(--purple);box-shadow:0 0 7px var(--purple);}
+.topbar-title{color:var(--purple);font-weight:700;letter-spacing:0.05em;font-size:11px;}
+.topbar-version{color:var(--text-dim);font-size:9px;margin-left:2px;}
+.sep{color:var(--border2);}
+.meta{color:var(--text-dim);}
+.meta span{color:var(--text);}
+.topbar-right{margin-left:auto;}
+.btn-new-top{background:transparent;border:1px solid var(--border2);border-radius:2px;color:var(--text-dim);font-family:var(--mono);font-size:9px;padding:0.25rem 0.6rem;cursor:pointer;letter-spacing:0.05em;}
+.btn-new-top:hover{border-color:var(--purple-dim);color:var(--purple);}
+
+.intro-box{background:var(--bg2);border:1px solid var(--border);border-radius:3px;padding:0.8rem 1rem;margin-bottom:0.6rem;}
+.intro-title{color:var(--text-bright);font-weight:700;font-size:11px;letter-spacing:0.05em;margin-bottom:0.4rem;}
+.intro-text{color:var(--text-dim);font-size:10px;line-height:1.65;}
+.intro-text strong{color:var(--text-label);}
+.aswg-badge{display:inline-block;margin-top:0.4rem;font-size:8px;font-weight:700;letter-spacing:0.08em;padding:2px 8px;border-radius:2px;background:rgba(167,139,250,0.1);color:var(--purple);border:1px solid var(--purple-dim);}
+
+.mode-bar{display:flex;gap:0.5rem;margin-bottom:0.6rem;}
+.mode-btn{flex:1;padding:1.2rem 1rem;border-radius:4px;cursor:pointer;font-family:var(--mono);border:1px solid var(--border2);background:var(--bg2);text-align:left;transition:background 0.15s,border-color 0.15s;}
+.mode-btn:hover{background:var(--bg3);border-color:var(--purple-dim);}
+.mode-btn.active{background:var(--purple-muted);border-color:var(--purple-dim);}
+.mode-btn-label{font-size:13px;font-weight:700;color:var(--text-bright);letter-spacing:0.06em;margin-bottom:0.35rem;}
+.mode-btn.active .mode-btn-label{color:var(--purple);}
+.mode-btn-desc{font-size:9px;color:var(--text-dim);line-height:1.5;}
+.mode-btn.active .mode-btn-desc{color:var(--text-label);}
+.mode-tag{display:inline-block;font-size:8px;font-weight:700;padding:2px 6px;border-radius:2px;border:1px solid var(--border2);color:var(--text-dim);margin-top:0.4rem;margin-right:3px;}
+.mode-btn.active .mode-tag{border-color:var(--purple-dim);color:var(--purple-dim);}
+
+#panel-1{display:none;}#panel-2{display:none;}#panel-3{display:none;}
+#results-1{display:none;}#results-2{display:none;}#results-3{display:none;}
+
+.config-grid{display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;margin-bottom:0.5rem;}
+.config-grid-4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:0.5rem;margin-bottom:0.5rem;}
+.field{background:var(--bg2);border:1px solid var(--border);border-radius:3px;padding:0.5rem 0.6rem;}
+.field label{display:block;font-size:9px;color:var(--text-dim);letter-spacing:0.07em;text-transform:uppercase;margin-bottom:4px;}
+.field input{width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:2px;color:var(--text-bright);font-family:var(--mono);font-size:13px;font-weight:700;padding:0.3rem 0.4rem;outline:none;}
+.field input:focus{border-color:var(--purple-dim);}
+.field-hint{font-size:8px;color:var(--text-dim);margin-top:3px;}
+
+.drop-zone{border:1px dashed var(--purple-dim);border-radius:3px;padding:1rem;text-align:center;cursor:pointer;background:var(--bg2);transition:border-color 0.15s,background 0.15s;margin-bottom:0.5rem;}
+.drop-zone:hover,.drop-zone.drag-over{border-color:var(--purple);background:var(--purple-muted);}
+.drop-zone input{display:none;}
+.drop-zone-prompt{color:var(--purple);font-weight:700;font-size:13px;margin-bottom:3px;}
+.drop-zone-hint{color:var(--text-dim);font-size:10px;}
+.cursor{display:inline-block;width:7px;height:13px;background:var(--purple);vertical-align:middle;animation:blink 1s step-end infinite;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+
+.file-list{background:var(--bg2);border:1px solid var(--border);border-radius:3px;padding:0.4rem 0.5rem;margin-bottom:0.5rem;max-height:120px;overflow-y:auto;}
+.file-item{display:flex;align-items:center;justify-content:space-between;padding:3px 0;border-bottom:1px solid var(--border);font-size:10px;color:var(--text-label);}
+.file-item:last-child{border-bottom:none;}
+.file-item-name{color:var(--text);}
+.file-item-remove{cursor:pointer;color:var(--text-dim);font-size:11px;padding:0 4px;}
+.file-item-remove:hover{color:var(--red);}
+.file-count{font-size:9px;color:var(--text-dim);margin-bottom:4px;}
+
+.manual-entry-row{display:flex;gap:0.4rem;align-items:center;margin-bottom:0.35rem;}
+.manual-entry-row input{flex:1;background:var(--bg3);border:1px solid var(--border2);border-radius:2px;color:var(--text-bright);font-family:var(--mono);font-size:13px;font-weight:700;padding:0.3rem 0.4rem;outline:none;}
+.manual-entry-row input:focus{border-color:var(--purple-dim);}
+.manual-entry-row label{font-size:9px;color:var(--text-dim);white-space:nowrap;min-width:50px;}
+.manual-entry-remove{cursor:pointer;color:var(--text-dim);font-size:14px;padding:0 4px;}
+.manual-entry-remove:hover{color:var(--red);}
+.manual-entries-wrap{background:var(--bg2);border:1px solid var(--border);border-radius:3px;padding:0.5rem;margin-bottom:0.5rem;max-height:200px;overflow-y:auto;}
+.btn-add-entry{background:transparent;border:1px dashed var(--purple-dim);border-radius:2px;color:var(--purple-dim);font-family:var(--mono);font-size:10px;padding:0.3rem 0.6rem;cursor:pointer;width:100%;margin-top:0.3rem;}
+.btn-add-entry:hover{border-color:var(--purple);color:var(--purple);}
+
+.btn-run-main{width:100%;padding:0.75rem;background:var(--purple-muted);border:1px solid var(--purple-dim);border-radius:3px;color:var(--purple);font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:0.08em;cursor:pointer;margin-top:0.3rem;}
+.btn-run-main:hover{background:#241a4a;color:var(--violet);}
+.btn-run-main:disabled{opacity:0.4;cursor:not-allowed;}
+
+.results-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:0.6rem;}
+.results-title{font-size:13px;font-weight:700;color:var(--purple);letter-spacing:0.08em;}
+.results-sub{font-size:9px;color:var(--text-dim);margin-top:2px;}
+
+.results-section-label{font-size:9px;font-weight:700;letter-spacing:0.1em;color:var(--text-dim);text-transform:uppercase;margin:0.75rem 0 0.35rem;display:flex;align-items:center;gap:0.5rem;}
+.results-section-label::after{content:'';flex:1;height:1px;background:var(--border);}
+
+.result-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:0.4rem;margin-bottom:0.4rem;}
+.result-grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:0.4rem;margin-bottom:0.4rem;}
+
+.rcard{background:var(--panel);border:1px solid var(--border);border-radius:3px;overflow:hidden;}
+.rcard.ok{border-color:var(--green-dim);background:#051205;}
+.rcard.warn{border-color:var(--amber);background:#1c1200;}
+.rcard.danger{border-color:var(--red);background:#1a0606;}
+.rcard.neutral{border-color:var(--border);background:var(--panel);}
+.rcard.info{border-color:var(--purple-dim);background:var(--purple-muted);}
+.rcard-header{padding:0.35rem 0.6rem;font-size:9px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;}
+.rcard.ok .rcard-header{background:#071507;border-bottom:1px solid var(--green-dim);color:var(--green-dim);}
+.rcard.warn .rcard-header{background:#221600;border-bottom:1px solid var(--amber);color:#8a6000;}
+.rcard.danger .rcard-header{background:#200808;border-bottom:1px solid var(--red);color:#8a2020;}
+.rcard.neutral .rcard-header{background:var(--bg2);border-bottom:1px solid var(--border);color:var(--text-label);}
+.rcard.info .rcard-header{background:#1a1535;border-bottom:1px solid var(--purple-dim);color:var(--text-label);}
+.rcard-body{padding:0.6rem;}
+.rcard-value{font-size:28px;font-weight:700;letter-spacing:-0.03em;line-height:1;}
+.rcard.ok .rcard-value{color:var(--green);}
+.rcard.warn .rcard-value{color:var(--amber);}
+.rcard.danger .rcard-value{color:var(--red);}
+.rcard.neutral .rcard-value{color:var(--text-bright);}
+.rcard.info .rcard-value{color:var(--violet);}
+.rcard-unit{font-size:10px;margin-top:2px;}
+.rcard.ok .rcard-unit{color:var(--green-dim);}
+.rcard.warn .rcard-unit{color:#8a6000;}
+.rcard.danger .rcard-unit{color:#8a2020;}
+.rcard.neutral .rcard-unit{color:var(--text-dim);}
+.rcard.info .rcard-unit{color:var(--purple-dim);}
+.rcard-status{display:inline-block;font-size:9px;font-weight:700;letter-spacing:0.08em;padding:1px 7px;border-radius:2px;margin-top:6px;}
+.rcard-status.ok{background:rgba(57,255,106,0.15);color:var(--green);border:1px solid rgba(57,255,106,0.4);}
+.rcard-status.warn{background:rgba(245,166,35,0.15);color:var(--amber);border:1px solid rgba(245,166,35,0.4);}
+.rcard-status.danger{background:rgba(255,68,68,0.15);color:var(--red);border:1px solid rgba(255,68,68,0.4);}
+.rcard-sub{font-size:8px;color:var(--text-dim);margin-top:4px;line-height:1.4;}
+
+.verdict-card{border-radius:3px;overflow:hidden;margin-bottom:0.5rem;}
+.verdict-card.ok{background:#051205;border:1px solid var(--green-dim);}
+.verdict-card.warn{background:#1c1200;border:1px solid var(--amber);}
+.verdict-card.danger{background:#1a0606;border:1px solid var(--red);}
+.verdict-header{padding:0.5rem 0.75rem;font-size:10px;font-weight:700;letter-spacing:0.08em;}
+.verdict-card.ok .verdict-header{background:#071507;border-bottom:1px solid var(--green-dim);color:var(--green-dim);}
+.verdict-card.warn .verdict-header{background:#221600;border-bottom:1px solid var(--amber);color:#8a6000;}
+.verdict-card.danger .verdict-header{background:#200808;border-bottom:1px solid var(--red);color:#8a2020;}
+.verdict-body{padding:0.6rem 0.75rem;display:flex;align-items:center;gap:1rem;}
+.verdict-label{font-size:22px;font-weight:700;}
+.verdict-card.ok .verdict-label{color:var(--green);}
+.verdict-card.warn .verdict-label{color:var(--amber);}
+.verdict-card.danger .verdict-label{color:var(--red);}
+.verdict-detail{font-size:10px;color:var(--text-dim);line-height:1.7;}
+
+.bottom-bar{display:flex;justify-content:space-between;align-items:center;margin-top:0.75rem;}
+.btn-new-bottom{background:transparent;border:1px solid var(--border2);border-radius:3px;color:var(--text-dim);font-family:var(--mono);font-size:10px;font-weight:700;padding:0.6rem 1.2rem;cursor:pointer;letter-spacing:0.06em;}
+.btn-new-bottom:hover{border-color:var(--purple-dim);color:var(--purple);}
+.btn-export-csv{background:var(--purple-muted);border:1px solid var(--purple-dim);border-radius:3px;color:var(--purple);font-family:var(--mono);font-size:10px;font-weight:700;padding:0.6rem 1.2rem;cursor:pointer;letter-spacing:0.06em;}
+.btn-export-csv:hover{background:#241a4a;color:var(--violet);}
+
+.disclaimer{margin-top:0.6rem;padding:0.5rem 0.7rem;border:1px solid var(--border);border-radius:3px;background:var(--bg2);font-size:9px;color:var(--text-dim);line-height:1.6;}
+.disclaimer strong{color:var(--text-label);}
+</style>
+</head>
+<body>
+<div class="root">
+
+<div class="topbar">
+  <div class="dot" id="statusDot"></div>
+  <span class="topbar-title">ASWG-R001 // LOUDNESS COMPLIANCE TOOL</span>
+  <span class="topbar-version">v1.5</span>
+  <span class="sep">//</span>
+  <span class="meta">sessions: <span id="tSessions">0</span></span>
+  <span class="sep">//</span>
+  <span class="meta">mode: <span id="tMode">—</span></span>
+  <div class="topbar-right">
+    <button class="btn-new-top" onclick="newAnalysis()">↺ NEW ANALYSIS</button></div>
+  </div>
+</div>
+
+<div class="intro-box">
+  <div class="intro-title">// AVERAGE LOUDNESS ANALYSIS — ASWG-R001 COMPLIANCE</div>
+  <div class="intro-text">Verifies the average loudness compliance of a project against <strong>PlayStation Studios ASWG-R001</strong> standards. Aggregates data from multiple sessions and produces a compliance verdict. Select the analysis mode best suited to your workflow.</div>
+  <span class="aswg-badge">ASWG-R001 v1.2 — Target: −24 (±2) LKFS home / −18 (±2) LKFS portable — True Peak: max −1 dBTP</span>
+</div>
+
+<div class="mode-bar">
+  <div class="mode-btn" id="modeBtn1" onclick="selectMode(1)">
+    <div class="mode-btn-label">① WWISE PROFILER</div>
+    <div class="mode-btn-desc">Estimate from .txt files exported from the Wwise Profiler. One file per session. Integrated loudness calculated with −70 LUFS gate.</div>
+    <span class="mode-tag">ESTIMATE</span><span class="mode-tag">MULTI-FILE</span><span class="mode-tag">.TXT</span>
+  </div>
+  <div class="mode-btn" id="modeBtn2" onclick="selectMode(2)">
+    <div class="mode-btn-label">② YOULEAN CSV</div>
+    <div class="mode-btn-desc">Accurate analysis from Youlean Loudness Meter exports. Real ITU-R BS.1770 values, certified True Peak.</div>
+    <span class="mode-tag">ACCURATE</span><span class="mode-tag">MULTI-FILE</span><span class="mode-tag">.CSV</span>
+  </div>
+  <div class="mode-btn" id="modeBtn3" onclick="selectMode(3)">
+    <div class="mode-btn-label">③ INPUT MANUALE</div>
+    <div class="mode-btn-desc">Manually enter integrated LUFS and True Peak values for each session. No files required.</div>
+    <span class="mode-tag">MANUAL</span><span class="mode-tag">FREE INPUT</span>
+  </div>
+</div>
+
+<!-- PANEL 1 -->
+<div id="panel-1">
+  <div class="config-grid-4">
+    <div class="field"><label>Target LUFS</label><input type="number" id="p1-target" value="-24" step="0.5"><div class="field-hint">−24 home / −18 portable</div></div>
+    <div class="field"><label>Output Peak limit (dBFS)</label><input type="number" id="p1-peak" value="-1" step="0.1"></div>
+    <div class="field"><label>Min session duration (min)</label><input type="number" id="p1-durmin" value="30" step="1"></div>
+    <div class="field"><label>Max session duration (min)</label><input type="number" id="p1-durmax" value="120" step="1"></div>
+  </div>
+  <div class="drop-zone" id="dz1">
+    <input type="file" id="fi1" accept=".txt" multiple>
+    <div class="drop-zone-prompt">> drop .txt Wwise Profiler files here <span class="cursor"></span></div>
+    <div class="drop-zone-hint">Profiler → right-click graph → Save Performance Counters — one file per session</div>
+  </div>
+  <div id="fl1-wrap" style="display:none">
+    <div class="file-count" id="fl1-count">0 files loaded</div>
+    <div class="file-list" id="fl1"></div>
+  </div>
+  <button class="btn-run-main" id="run1" onclick="runMode1()">♫ ANALYSE SESSIONS</button>
+</div>
+
+<!-- PANEL 2 -->
+<div id="panel-2">
+  <div class="config-grid-4">
+    <div class="field"><label>Target LUFS</label><input type="number" id="p2-target" value="-24" step="0.5"><div class="field-hint">−24 home / −18 portable</div></div>
+    <div class="field"><label>True Peak limit (dBTP)</label><input type="number" id="p2-peak" value="-1" step="0.1"></div>
+    <div class="field"><label>Min session duration (min)</label><input type="number" id="p2-durmin" value="30" step="1"></div>
+    <div class="field"><label>Max session duration (min)</label><input type="number" id="p2-durmax" value="120" step="1"></div>
+  </div>
+  <div class="drop-zone" id="dz2">
+    <input type="file" id="fi2" accept=".csv" multiple>
+    <div class="drop-zone-prompt">> drop .csv Youlean Loudness Meter files here <span class="cursor"></span></div>
+    <div class="drop-zone-hint">Youlean → Export → one .csv file per session</div>
+  </div>
+  <div id="fl2-wrap" style="display:none">
+    <div class="file-count" id="fl2-count">0 files loaded</div>
+    <div class="file-list" id="fl2"></div>
+  </div>
+  <button class="btn-run-main" id="run2" onclick="runMode2()">♫ ANALYSE SESSIONS</button>
+</div>
+
+<!-- PANEL 3 -->
+<div id="panel-3">
+  <div class="config-grid">
+    <div class="field"><label>Target LUFS</label><input type="number" id="p3-target" value="-24" step="0.5"><div class="field-hint">−24 home / −18 portable</div></div>
+    <div class="field"><label>True Peak limit (dBTP)</label><input type="number" id="p3-peak" value="-1" step="0.1"></div>
+  </div>
+  <div class="field" style="margin-bottom:0.5rem;"><label>Enter sessions — Integrated LUFS and True Peak for each session</label></div>
+  <div class="manual-entries-wrap" id="manualEntries"></div>
+  <button class="btn-add-entry" onclick="addManualEntry()">+ ADD SESSION</button>
+  <button class="btn-run-main" style="margin-top:0.5rem;" onclick="runMode3()">♫ CALCULATE AVERAGE</button>
+</div>
+
+<div id="results-1"></div>
+<div id="results-2"></div>
+<div id="results-3"></div>
+
+</div>
+
+<script>
+(function(){
+  const svg=`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='4' fill='%2308080f'/><text x='16' y='21' font-family='monospace' font-size='14' font-weight='bold' text-anchor='middle' fill='%23a78bfa'>dB</text></svg>`;
+  const link=document.createElement('link');link.rel='icon';link.type='image/svg+xml';
+  link.href='data:image/svg+xml,'+svg;document.head.appendChild(link);
+  document.title='ASWG-R001 Loudness Compliance Tool';
+})();
+
+let mode=0;
+const files1=[],files2=[];
+let manualCount=0;
+
+function newAnalysis(){
+  [1,2,3].forEach(i=>{
+    document.getElementById('panel-'+i).style.display='none';
+    document.getElementById('results-'+i).innerHTML='';
+    document.getElementById('results-'+i).style.display='none';
+    document.getElementById('modeBtn'+i).classList.remove('active');
+  });
+  files1.length=0;files2.length=0;manualCount=0;
+  renderFileList(files1,'fl1-count','fl1','fl1-wrap');
+  renderFileList(files2,'fl2-count','fl2','fl2-wrap');
+  document.getElementById('manualEntries').innerHTML='';
+  document.getElementById('tSessions').textContent=0;
+  document.getElementById('tMode').textContent='—';
+  document.getElementById('statusDot').classList.remove('on');
+  mode=0;
+  try{document.getElementById('fi1').value='';}catch(e){}
+  try{document.getElementById('fi2').value='';}catch(e){}
+}
+
+function selectMode(m){
+  mode=m;
+  [1,2,3].forEach(i=>{
+    document.getElementById('modeBtn'+i).classList.remove('active');
+    document.getElementById('panel-'+i).style.display='none';
+    document.getElementById('results-'+i).innerHTML='';
+    document.getElementById('results-'+i).style.display='none';
+  });
+  document.getElementById('modeBtn'+m).classList.add('active');
+  document.getElementById('panel-'+m).style.display='block';
+  document.getElementById('tMode').textContent=['—','WWISE PROFILER','YOULEAN CSV','MANUAL INPUT'][m];
+  if(m===3&&document.getElementById('manualEntries').children.length===0){addManualEntry();addManualEntry();}
+}
+
+function setupDropZone(dzId,fiId,arr,ext,countId,listId,wrapId){
+  const dz=document.getElementById(dzId);
+  const fi=document.getElementById(fiId);
+  dz.addEventListener('click',()=>fi.click());
+  dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('drag-over');});
+  dz.addEventListener('dragleave',()=>dz.classList.remove('drag-over'));
+  dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('drag-over');addFiles(Array.from(e.dataTransfer.files),arr,ext,countId,listId,wrapId);});
+  fi.addEventListener('change',e=>{addFiles(Array.from(e.target.files),arr,ext,countId,listId,wrapId);fi.value='';});
+}
+function addFiles(newFiles,arr,ext,countId,listId,wrapId){
+  newFiles.forEach(f=>{if(f.name.toLowerCase().endsWith(ext)&&!arr.find(x=>x.name===f.name))arr.push(f);});
+  renderFileList(arr,countId,listId,wrapId);
+  document.getElementById('statusDot').classList.add('on');
+  document.getElementById('tSessions').textContent=arr.length;
+}
+function removeFile(arrRef,name,countId,listId,wrapId){
+  const arr=arrRef==='files1'?files1:files2;
+  const idx=arr.findIndex(f=>f.name===name);
+  if(idx>=0)arr.splice(idx,1);
+  renderFileList(arr,countId,listId,wrapId);
+  document.getElementById('tSessions').textContent=arr.length;
+}
+function renderFileList(arr,countId,listId,wrapId){
+  document.getElementById(wrapId).style.display=arr.length?'block':'none';
+  document.getElementById(countId).textContent=arr.length+' file caricati';
+  const ul=document.getElementById(listId);ul.innerHTML='';
+  arr.forEach(f=>{
+    const div=document.createElement('div');div.className='file-item';
+    const arrRef=listId==='fl1'?'files1':'files2';
+    div.innerHTML=`<span class="file-item-name">${f.name}</span><span class="file-item-remove" onclick="removeFile('${arrRef}','${f.name}','${countId}','${listId}','${wrapId}')">✕</span>`;
+    ul.appendChild(div);
+  });
+}
+setupDropZone('dz1','fi1',files1,'.txt','fl1-count','fl1','fl1-wrap');
+setupDropZone('dz2','fi2',files2,'.csv','fl2-count','fl2','fl2-wrap');
+
+function addManualEntry(){
+  manualCount++;
+  const id=manualCount;
+  const wrap=document.getElementById('manualEntries');
+  const row=document.createElement('div');row.id='me-'+id;row.className='manual-entry-row';
+  row.innerHTML=`<label>Sessione ${id}</label><label style="font-size:9px;color:var(--text-dim);margin-left:4px;">LUFS</label><input type="number" id="me-lufs-${id}" placeholder="-24.0" step="0.1"><label style="font-size:9px;color:var(--text-dim);margin-left:4px;">TP</label><input type="number" id="me-tp-${id}" placeholder="-2.0" step="0.1"><span class="manual-entry-remove" onclick="document.getElementById('me-${id}').remove()">✕</span>`;
+  wrap.appendChild(row);
+}
+
+async function parseWwiseTxt(file){
+  return new Promise(res=>{
+    const r=new FileReader();
+    r.onload=e=>{
+      const text=e.target.result;
+      const lines=text.split(/\r?\n/).filter(l=>l.trim());
+      const headers=lines[0].split('\t').map(h=>h.trim());
+      const rows=lines.slice(1).map(l=>{const vals=l.split('\t');const o={};headers.forEach((h,i)=>o[h]=vals[i]);return o;});
+      const col=(name)=>rows.map(r=>parseFloat(r[name])).filter(v=>!isNaN(v));
+      const mean=(a)=>a.length?a.reduce((x,y)=>x+y,0)/a.length:null;
+      const times=col('Time (Milliseconds)');
+      const durMs=times.length?(Math.max(...times)-times[0]):0;
+      const durMin=durMs/60000;
+      const stA=col('Loudness Short-term/Instance A').filter(v=>v>-96);
+      const stGated=stA.filter(v=>v>-70);
+      const integrated=stGated.length?mean(stGated):null;
+      const peakVals=col('Output Peak').filter(v=>v>-96&&v<0); // escludi silenzio (-96) e 0 dBFS (frame senza audio)
+      const peakMax=peakVals.length?Math.max(...peakVals):null;
+      const peakMin=peakVals.length?Math.min(...peakVals):null;
+      const peakMean=peakVals.length?mean(peakVals):null;
+      res({name:file.name,durMin,integrated,peakMax,peakMin,peakMean,valid:integrated!==null});
+    };
+    r.readAsText(file);
+  });
+}
+
+async function parseYouleanCsv(file){
+  return new Promise(res=>{
+    const r=new FileReader();
+    r.onload=e=>{
+      const text=e.target.result;
+      const lines=text.split(/\r?\n/);
+      let integrated=null,truePeakMax=null,tcStart=null,tcEnd=null,fileDuration=null;
+      lines.forEach(l=>{
+        if(l.startsWith('Integrated,'))integrated=parseFloat(l.split(',')[1]);
+        if(l.startsWith('True Peak Max,'))truePeakMax=parseFloat(l.split(',')[1]);
+        if(l.startsWith('Timecode Start,'))tcStart=l.split(',')[1]?.trim();
+        if(l.startsWith('Timecode End,'))tcEnd=l.split(',')[1]?.trim();
+        if(l.startsWith('File Duration,'))fileDuration=l.split(',')[1]?.trim();
+      });
+      // Parse duration from Timecode End - Timecode Start
+      // Youlean exports TC as MM:SS.mmm (minutes:seconds.milliseconds), NOT HH:MM:SS
+      // "File Duration" field is unreliable (Youlean bug), so we always use timecodes
+      let durMin=0;
+      function tcToMin(tc){
+        if(!tc)return 0;
+        const p=tc.split(':');
+        if(p.length===2){
+          // MM:SS.mmm
+          return parseInt(p[0])+parseFloat(p[1])/60;
+        } else if(p.length===3){
+          // Could be MM:SS.mmm with extra dot, treat first field as minutes
+          return parseInt(p[0])+parseInt(p[1])/60+parseFloat(p[2])/3600;
+        }
+        return 0;
+      }
+      durMin=tcToMin(tcEnd)-tcToMin(tcStart);
+      const dataStart=lines.findIndex(l=>l.startsWith('Transport Time,'));
+      let tpMin=null,tpMean=null;
+      if(dataStart>=0){
+        const tpVals=lines.slice(dataStart+1).map(l=>{const p=l.split(',');return p.length>=6?parseFloat(p[5]):NaN;}).filter(v=>!isNaN(v)&&v>-96);
+        if(tpVals.length){tpMin=Math.min(...tpVals);tpMean=tpVals.reduce((a,b)=>a+b,0)/tpVals.length;}
+      }
+      res({name:file.name,durMin,integrated,peakMax:truePeakMax,peakMin:tpMin,peakMean:tpMean,valid:integrated!==null&&truePeakMax!==null});
+    };
+    r.readAsText(file);
+  });
+}
+
+function arithmeticMean(arr){return arr.length?arr.reduce((a,b)=>a+b,0)/arr.length:null;}
+function weightedMean(vals,weights){
+  const tot=weights.reduce((a,b)=>a+b,0);
+  if(!tot)return arithmeticMean(vals);
+  return vals.reduce((s,v,i)=>s+v*weights[i],0)/tot;
+}
+
+// LOGICA PICCHI CORRETTA — valori negativi, OK < -2, WARN -2 to -1, CRIT > -1
+function peakCls(val){if(val>-1)return'danger';if(val>=-2)return'warn';return'ok';}
+function peakLbl(val){if(val>-1)return'CRIT';if(val>=-2)return'WARN';return'OK';}
+function lufsCls(val,target){return Math.abs(val-target)<=2?'ok':'danger';}
+function lufsLbl(val,target){return Math.abs(val-target)<=2?'OK':'CRIT';}
+
+function renderResults(containerId,sessions,target,peakLimit,durMin,durMax,peakLabelStr,isEstimate){
+  const lufsList=sessions.map(s=>s.integrated).filter(v=>v!=null);
+  const peakMaxList=sessions.map(s=>s.peakMax).filter(v=>v!=null);
+  const peakMinList=sessions.map(s=>s.peakMin).filter(v=>v!=null);
+  const peakMeanList=sessions.map(s=>s.peakMean).filter(v=>v!=null);
+  const durs=sessions.filter(s=>s.durMin>0).map(s=>s.durMin);
+
+  const lufsArith=arithmeticMean(lufsList);
+  const lufsWgt=durs.length===lufsList.length&&durs.length>0?weightedMean(lufsList,durs):null;
+  const lufsMax=lufsList.length?Math.max(...lufsList):null;
+  const lufsMin=lufsList.length?Math.min(...lufsList):null;
+  const peakMaxVal=peakMaxList.length?Math.max(...peakMaxList):null;
+  const peakMeanVal=arithmeticMean(peakMeanList);
+  const peakMinVal=peakMinList.length?Math.min(...peakMinList):null;
+  const durMeanVal=durs.length?arithmeticMean(durs):null;
+  const shortSessions=durs.filter(d=>d<durMin);
+
+  const lufsOk=lufsArith!=null&&Math.abs(lufsArith-target)<=2;
+  const peakWorstOk=peakMaxVal==null||peakMaxVal<-1;
+  const hasDurProblems=durMin>0&&shortSessions.length>0;
+  const overallClass=(!lufsOk||!peakWorstOk)?'danger':hasDurProblems?'warn':'ok';
+  const overallLabel=overallClass==='ok'?'COMPLIANT':overallClass==='warn'?'WARNING':'NON COMPLIANT';
+
+  let html=`
+  <div class="results-header">
+    <div>
+      <div class="results-title">// RISULTATI — ${sessions.length} sessions analysed</div>
+      <div class="results-sub">target: ${target} LUFS (±2)  //  ${peakLabelStr} limite: ${peakLimit} dBFS  //  ${durMin>0?'min duration: '+durMin+' min':'manual input'}</div>
+    </div>
+  </div>
+
+  <div class="verdict-card ${overallClass}">
+    <div class="verdict-header">ASWG-R001 OVERALL VERDICT</div>
+    <div class="verdict-body">
+      <div class="verdict-label">${overallLabel}</div>
+      <div class="verdict-detail">
+        Loudness integrata: ${lufsArith!=null?(Math.abs(lufsArith-target)<=2?'✓ within ±2 of target ('+lufsArith.toFixed(1)+' LUFS)':'✗ outside ±2 range ('+lufsArith.toFixed(1)+' LUFS, target '+target+')'):'N/D'}<br>
+        ${peakLabelStr}: ${peakMaxVal!=null?(peakMaxVal>-1?'✗ exceeds −1 dBFS ('+peakMaxVal.toFixed(1)+')':peakMaxVal>=-2?'⚠ between −2 and −1 dBFS ('+peakMaxVal.toFixed(1)+')':'✓ below −2 dBFS ('+peakMaxVal.toFixed(1)+')'):'N/D'}<br>
+        ${durMin>0?'Durate: '+(shortSessions.length===0?'✓ all above minimum of '+durMin+' min':'✗ '+shortSessions.length+' session(s) below minimum of '+durMin+' min'):''}
+      </div>
+    </div>
+  </div>
+
+  <div class="results-section-label">INTEGRATED LOUDNESS</div>
+  <div class="result-grid-4">
+    <div class="rcard ${lufsArith!=null?lufsCls(lufsArith,target):'neutral'}">
+      <div class="rcard-header">Arithmetic mean</div>
+      <div class="rcard-body">
+        <div class="rcard-value">${lufsArith!=null?lufsArith.toFixed(1):'N/D'}</div>
+        <div class="rcard-unit">LUFS</div>
+        ${lufsArith!=null?`<div class="rcard-status ${lufsCls(lufsArith,target)}">${lufsLbl(lufsArith,target)}</div><div class="rcard-sub">target: ${target} LUFS  range ±2</div>`:''}
+      </div>
+    </div>
+    ${lufsWgt!=null?`
+    <div class="rcard ${lufsCls(lufsWgt,target)}">
+      <div class="rcard-header">Duration-weighted mean</div>
+      <div class="rcard-body">
+        <div class="rcard-value">${lufsWgt.toFixed(1)}</div>
+        <div class="rcard-unit">LUFS</div>
+        <div class="rcard-status ${lufsCls(lufsWgt,target)}">${lufsLbl(lufsWgt,target)}</div>
+        <div class="rcard-sub">longer sessions have more weight</div>
+      </div>
+    </div>`:`<div class="rcard neutral"><div class="rcard-header">Media ponderata</div><div class="rcard-body"><div class="rcard-value" style="font-size:14px">N/D</div><div class="rcard-sub">not available without duration data</div></div></div>`}
+    <div class="rcard neutral">
+      <div class="rcard-header">Session max</div>
+      <div class="rcard-body"><div class="rcard-value">${lufsMax!=null?lufsMax.toFixed(1):'N/D'}</div><div class="rcard-unit">LUFS</div></div>
+    </div>
+    <div class="rcard neutral">
+      <div class="rcard-header">Session min</div>
+      <div class="rcard-body"><div class="rcard-value">${lufsMin!=null?lufsMin.toFixed(1):'N/D'}</div><div class="rcard-unit">LUFS</div></div>
+    </div>
+  </div>
+
+  <div class="results-section-label">${peakLabelStr.toUpperCase()} — OK &lt; −2  //  WARN −2→−1  //  CRIT &gt; −1</div>
+  <div class="result-grid">
+    <div class="rcard ${peakMaxVal!=null?peakCls(peakMaxVal):'neutral'}">
+      <div class="rcard-header">${isEstimate?'Output Peak Max':'True Peak Max'}</div>
+      <div class="rcard-body">
+        <div class="rcard-value">${peakMaxVal!=null?peakMaxVal.toFixed(1):'N/D'}</div>
+        <div class="rcard-unit">dBFS</div>
+        ${peakMaxVal!=null?`<div class="rcard-status ${peakCls(peakMaxVal)}">${peakLbl(peakMaxVal)}</div>`:''}
+      </div>
+    </div>
+    <div class="rcard ${peakMeanVal!=null?peakCls(peakMeanVal):'neutral'}">
+      <div class="rcard-header">Average</div>
+      <div class="rcard-body">
+        <div class="rcard-value">${peakMeanVal!=null?peakMeanVal.toFixed(1):'N/D'}</div>
+        <div class="rcard-unit">dBFS</div>
+        ${peakMeanVal!=null?`<div class="rcard-status ${peakCls(peakMeanVal)}">${peakLbl(peakMeanVal)}</div>`:''}
+      </div>
+    </div>
+    <div class="rcard neutral">
+      <div class="rcard-header">Min</div>
+      <div class="rcard-body"><div class="rcard-value">${peakMinVal!=null?peakMinVal.toFixed(1):'N/D'}</div><div class="rcard-unit">dBFS</div></div>
+    </div>
+  </div>`;
+
+  if(durMeanVal!=null){
+    html+=`
+  <div class="results-section-label">SESSION DURATIONS</div>
+  <div class="result-grid">
+    <div class="rcard info">
+      <div class="rcard-header">Average duration</div>
+      <div class="rcard-body"><div class="rcard-value">${durMeanVal.toFixed(1)}</div><div class="rcard-unit">minutes</div></div>
+    </div>
+    <div class="rcard ${shortSessions.length===0?'ok':'danger'}">
+      <div class="rcard-header">Sessions below minimum (${durMin} min)</div>
+      <div class="rcard-body">
+        <div class="rcard-value">${shortSessions.length}</div>
+        <div class="rcard-unit">su ${durs.length} totali</div>
+        <div class="rcard-status ${shortSessions.length===0?'ok':'danger'}">${shortSessions.length===0?'OK':'CRIT'}</div>
+        ${shortSessions.length>0?`<div class="rcard-sub">${shortSessions.length} sessione/i non raggiungono il minimo di ${durMin} min</div>`:''}
+      </div>
+    </div>
+    <div class="rcard neutral">
+      <div class="rcard-header">Duration range</div>
+      <div class="rcard-body"><div class="rcard-value" style="font-size:16px">${Math.min(...durs).toFixed(0)}–${Math.max(...durs).toFixed(0)}</div><div class="rcard-unit">minutes</div></div>
+    </div>
+  </div>`;
+  }
+
+  if(isEstimate){
+    html+=`<div class="disclaimer"><strong>⚠ NOTE —</strong> Wwise Profiler mode: integrated loudness is an <strong>estimate</strong> (Short-term average with −70 LUFS gate, ITU-R BS.1770 base algorithm). The peak is an <strong>Output Peak (sample peak)</strong>, not a True Peak per ITU-R BS.1770-5. For certified values, use the Youlean CSV mode.</div>`;
+  }
+
+  const safeId=containerId.replace(/[^a-zA-Z0-9]/g,'_');
+  html+=`<div class="bottom-bar">
+    <button class="btn-export-csv" onclick="exportCSV('${containerId}')">⬇ EXPORT FULL REPORT CSV</button>
+    <button class="btn-new-bottom" onclick="newAnalysis()">↺ NEW ANALYSIS</button>
+  </div>`;
+
+  const c=document.getElementById(containerId);
+  c.innerHTML=html;c.style.display='block';
+
+  // Store data for CSV export keyed by containerId
+  window._csvStore=window._csvStore||{};
+  window._csvStore[containerId]={sessions,target,peakLimit,durMin,peakLabelStr,isEstimate,
+    lufsArith,lufsWgt,lufsMax,lufsMin,peakMaxVal,peakMeanVal,peakMinVal,durMeanVal,shortSessions,
+    overallLabel,durs,lufsList};
+}
+
+function exportCSV(containerId){
+  const d=window._csvStore&&window._csvStore[containerId];
+  if(!d){alert('Nessun dato disponibile per l\'export');return;}
+  exportFullReport(d);
+}
+
+function esc(v){return v!=null?String(v).replace(/,/g,';'):'N/D';}
+function fv(v,dec=1){return v!=null?v.toFixed(dec):'N/D';}
+
+function exportFullReport(d){
+  const {sessions,target,peakLabelStr,isEstimate,
+    lufsArith,lufsWgt,lufsMax,lufsMin,peakMaxVal,peakMeanVal,peakMinVal,
+    durMeanVal,shortSessions,overallLabel,durMin,durs,lufsList}=d;
+
+  // Find sessions with max/min LUFS and max/min peak
+  const lufsMaxSession=sessions.find(s=>s.integrated!=null&&Math.abs(s.integrated-lufsMax)<0.001);
+  const lufsMinSession=sessions.find(s=>s.integrated!=null&&Math.abs(s.integrated-lufsMin)<0.001);
+  const peakMaxSession=sessions.find(s=>s.peakMax!=null&&Math.abs(s.peakMax-peakMaxVal)<0.001);
+  const peakMinSession=sessions.find(s=>{
+    const v=s.peakMin!=null?s.peakMin:s.peakMean;
+    return v!=null&&Math.abs(v-peakMinVal)<0.001;
+  });
+  const shortSessionNames=sessions.filter((s,i)=>durs[i]!=null&&durs[i]<durMin).map(s=>s.name);
+
+  const date=new Date().toISOString().slice(0,10);
+  const rows=[];
+
+  // Header
+  rows.push(['ASWG-R001 LOUDNESS COMPLIANCE REPORT']);
+  rows.push(['Export date',date]);
+  rows.push(['Analysis mode',isEstimate?'Wwise Profiler (estimate)':'Youlean CSV (accurate)']);
+  rows.push(['Sessions analysed',sessions.length]);
+  rows.push(['Target LUFS',target]);
+  rows.push(['Peak type',peakLabelStr]);
+  rows.push([]);
+
+  // Risultato
+  rows.push(['--- RESULT ---']);
+  rows.push(['Verdetto ASWG-R001',overallLabel]);
+  rows.push(['Loudness OK',Math.abs(lufsArith-target)<=2?'YES':'NO']);
+  rows.push(['Peak OK',peakMaxVal!=null?(peakMaxVal<-1?'SI':peakMaxVal<=-1?'WARN':'NO'):'N/D']);
+  rows.push(['Durations OK',shortSessions.length===0?'YES':'NO']);
+  rows.push([]);
+
+  // Loudness Media
+  rows.push(['--- LOUDNESS AVERAGE ---']);
+  rows.push(['Arithmetic mean (LUFS)',fv(lufsArith)]);
+  rows.push(['Duration-weighted mean (LUFS)',fv(lufsWgt)]);
+  rows.push([]);
+
+  // Loudness Details
+  rows.push(['--- LOUDNESS DETAILS ---']);
+  rows.push(['LUFS Max',fv(lufsMax),'Session',esc(lufsMaxSession?.name)]);
+  rows.push(['LUFS Min',fv(lufsMin),'Session',esc(lufsMinSession?.name)]);
+  rows.push([]);
+
+  // True Peak / Output Peak
+  const pkLabel=isEstimate?'Output Peak (sample peak)':'True Peak (ITU-R BS.1770)';
+  rows.push(['--- '+pkLabel.toUpperCase()+' ---']);
+  rows.push([pkLabel+' Max (dBFS)',fv(peakMaxVal)]);
+  rows.push([pkLabel+' Average (dBFS)',fv(peakMeanVal)]);
+  rows.push([pkLabel+' Min (dBFS)',fv(peakMinVal)]);
+  rows.push([]);
+
+  // Peak Details
+  rows.push(['--- PEAK DETAILS ---']);
+  rows.push(['Peak Max (dBFS)',fv(peakMaxVal),'Session',esc(peakMaxSession?.name)]);
+  rows.push(['Peak Min (dBFS)',fv(peakMinVal),'Session',esc(peakMinSession?.name)]);
+  rows.push([]);
+
+  // Durata
+  rows.push(['--- DURATION ---']);
+  rows.push(['Average duration (min)',fv(durMeanVal)]);
+  if(durs.length){
+    rows.push(['Duration range (min)',fv(Math.min(...durs),0)+' – '+fv(Math.max(...durs),0)]);
+  }
+  rows.push([]);
+
+  // Dettaglio sessioni
+  rows.push(['--- SESSION DETAILS ---']);
+  rows.push(['Sessions below minimum ('+durMin+' min)',shortSessions.length]);
+  if(shortSessionNames.length){
+    shortSessionNames.forEach(n=>rows.push(['Session below minimum',esc(n)]));
+  }
+  rows.push([]);
+  rows.push(['Session name','LUFS integrata',pkLabel+' max (dBFS)','Durata (min)','Below min duration']);
+  sessions.forEach((s,i)=>{
+    const dur=durs[i]!=null?fv(durs[i]):'N/D';
+    const sottoMin=durs[i]!=null&&durs[i]<durMin?'YES':'NO';
+    rows.push([esc(s.name),fv(s.integrated),fv(s.peakMax),dur,sottoMin]);
+  });
+
+  if(isEstimate){
+    rows.push([]);
+    rows.push(['NOTE','Output Peak is a sample peak, not a True Peak per ITU-R BS.1770-5. Values are estimated.']);
+  }
+
+  const csv=rows.map(r=>r.join(',')).join('\r\n');
+  const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download='ASWG_R001_Report_'+date+'.csv';
+  document.body.appendChild(a);a.click();
+  document.body.removeChild(a);URL.revokeObjectURL(url);
+}
+
+async function runMode1(){
+  if(!files1.length){alert('Load at least one .txt file');return;}
+  const target=parseFloat(document.getElementById('p1-target').value);
+  const peakLim=parseFloat(document.getElementById('p1-peak').value);
+  const durMin=parseFloat(document.getElementById('p1-durmin').value);
+  const durMax=parseFloat(document.getElementById('p1-durmax').value);
+  const btn=document.getElementById('run1');btn.disabled=true;btn.textContent='Analysing...';
+  const sessions=await Promise.all(files1.map(parseWwiseTxt));
+  btn.disabled=false;btn.textContent='♫ ANALYSE SESSIONS';
+  renderResults('results-1',sessions,target,peakLim,durMin,durMax,'Output Peak (sample peak)',true);
+}
+
+async function runMode2(){
+  if(!files2.length){alert('Load at least one .csv file');return;}
+  const target=parseFloat(document.getElementById('p2-target').value);
+  const peakLim=parseFloat(document.getElementById('p2-peak').value);
+  const durMin=parseFloat(document.getElementById('p2-durmin').value);
+  const durMax=parseFloat(document.getElementById('p2-durmax').value);
+  const btn=document.getElementById('run2');btn.disabled=true;btn.textContent='Analysing...';
+  const sessions=await Promise.all(files2.map(parseYouleanCsv));
+  btn.disabled=false;btn.textContent='♫ ANALYSE SESSIONS';
+  renderResults('results-2',sessions,target,peakLim,durMin,durMax,'True Peak (ITU-R BS.1770)',false);
+}
+
+function runMode3(){
+  const target=parseFloat(document.getElementById('p3-target').value);
+  const peakLim=parseFloat(document.getElementById('p3-peak').value);
+  const entries=document.querySelectorAll('[id^="me-lufs-"]');
+  const sessions=[];
+  entries.forEach(el=>{
+    const id=el.id.replace('me-lufs-','');
+    const lufs=parseFloat(el.value);
+    const tp=parseFloat(document.getElementById('me-tp-'+id)?.value);
+    if(!isNaN(lufs)&&!isNaN(tp))sessions.push({name:'Session '+id,integrated:lufs,peakMax:tp,peakMin:tp,peakMean:tp,durMin:0,valid:true});
+  });
+  if(!sessions.length){alert('Enter at least one valid session');return;}
+  document.getElementById('tSessions').textContent=sessions.length;
+  document.getElementById('statusDot').classList.add('on');
+  renderResults('results-3',sessions,target,peakLim,0,0,'True Peak',false);
+}
+</script>
+</body>
+</html>
