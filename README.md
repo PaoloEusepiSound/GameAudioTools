@@ -8,17 +8,15 @@ Tools:
 🟡 SFX Renamer
 Naming Convention Tool
 Define a custom naming convention, load a batch of audio files, fill in the label fields, and apply the rename — directly on disk or as a ZIP archive. Designed for sound designers working under a lead-defined naming structure across different projects.
-→ Open tool
+
 
 🟢 Wwise Session Analysis Tool
 Profiler Performance & Loudness Analysis
 Load a .txt export from the Audiokinetic Wwise Profiler and get instant aggregated metrics across the full session. Three analysis modes: Fast Analysis (CPU, voices, RAM, streaming), QA Audit (configurable hard limits with colour-coded verdict), and Loudness Check (ITU-R BS.1770 approximation).
-→ Open tool
 
 🟣 ASWG-R001 Loudness Compliance Tool
 PlayStation Studios ASWG-R001 Compliance Checker
 Verify average loudness compliance against the ASWG-R001 v1.2 recommendation across multiple gameplay sessions. Supports three input modes: Wwise Profiler .txt exports, Youlean Loudness Meter .csv exports, and manual entry. Produces a binary compliance verdict with full session statistics.
-→ Open tool
 
 Usage
 Each tool is self-contained. Download the .html file for the tool you need and open it in your browser.
