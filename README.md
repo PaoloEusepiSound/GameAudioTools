@@ -19,10 +19,7 @@ Verify average loudness compliance against the ASWG-R001 v1.2 recommendation acr
 → Open tool
 
 Usage
-Each tool is self-contained. Download the .html file for the tool you need and open it in your browser, or access it directly via GitHub Pages:
-https://<your-username>.github.io/audio-tools/sfx-renamer/SoundRenamer_Tool.html
-https://<your-username>.github.io/audio-tools/wwise-session-analysis/WwiseSessionAnalysisTool.html
-https://<your-username>.github.io/audio-tools/loudness-compliance/ASWG_LoudnessComplianceTool.html
+Each tool is self-contained. Download the .html file for the tool you need and open it in your browser.
 Browser compatibility
 All tools run in any modern browser. The SFX Renamer uses the File System Access API for direct file writing — supported on Chrome, Edge, Opera GX, Brave, and Arc. Firefox falls back to ZIP download.
 
