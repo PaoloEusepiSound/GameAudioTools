@@ -389,18 +389,18 @@ async function parseYouleanCsv(file){
         if(l.startsWith('File Duration,'))fileDuration=l.split(',')[1]?.trim();
       });
       // Parse duration from Timecode End - Timecode Start
-      // Youlean exports TC as MM:SS.mmm (minutes:seconds.milliseconds), NOT HH:MM:SS
-      // "File Duration" field is unreliable (Youlean bug), so we always use timecodes
+      // Youlean exports TC as HH:MM:SS.mmm (hours:minutes:seconds.milliseconds)
+      // We compute total minutes from the timecode.
       let durMin=0;
       function tcToMin(tc){
         if(!tc)return 0;
         const p=tc.split(':');
-        if(p.length===2){
-          // MM:SS.mmm
+        if(p.length===3){
+          // HH:MM:SS.mmm — first field is hours
+          return parseInt(p[0])*60+parseInt(p[1])+parseFloat(p[2])/60;
+        } else if(p.length===2){
+          // MM:SS.mmm — first field is minutes
           return parseInt(p[0])+parseFloat(p[1])/60;
-        } else if(p.length===3){
-          // Could be MM:SS.mmm with extra dot, treat first field as minutes
-          return parseInt(p[0])+parseInt(p[1])/60+parseFloat(p[2])/3600;
         }
         return 0;
       }
@@ -457,7 +457,7 @@ function renderResults(containerId,sessions,target,peakLimit,durMin,durMax,peakL
   <div class="results-header">
     <div>
       <div class="results-title">// RISULTATI — ${sessions.length} sessions analysed</div>
-      <div class="results-sub">target: ${target} LUFS (±2)  //  ${peakLabelStr} limite: ${peakLimit} dBFS  //  ${durMin>0?'min duration: '+durMin+' min':'manual input'}</div>
+      <div class="results-sub">target: ${target} LUFS (±2)  //  ${peakLabelStr} limit: ${peakLimit} dBFS  //  ${durMin>0?'min duration: '+durMin+' min':'manual input'}</div>
     </div>
   </div>
 
@@ -468,7 +468,7 @@ function renderResults(containerId,sessions,target,peakLimit,durMin,durMax,peakL
       <div class="verdict-detail">
         Loudness integrata: ${lufsArith!=null?(Math.abs(lufsArith-target)<=2?'✓ within ±2 of target ('+lufsArith.toFixed(1)+' LUFS)':'✗ outside ±2 range ('+lufsArith.toFixed(1)+' LUFS, target '+target+')'):'N/D'}<br>
         ${peakLabelStr}: ${peakMaxVal!=null?(peakMaxVal>-1?'✗ exceeds −1 dBFS ('+peakMaxVal.toFixed(1)+')':peakMaxVal>=-2?'⚠ between −2 and −1 dBFS ('+peakMaxVal.toFixed(1)+')':'✓ below −2 dBFS ('+peakMaxVal.toFixed(1)+')'):'N/D'}<br>
-        ${durMin>0?'Durate: '+(shortSessions.length===0?'✓ all above minimum of '+durMin+' min':'✗ '+shortSessions.length+' session(s) below minimum of '+durMin+' min'):''}
+        ${durMin>0?'Durations: '+(shortSessions.length===0?'✓ all above minimum of '+durMin+' min':'✗ '+shortSessions.length+' session(s) below minimum of '+durMin+' min'):''}
       </div>
     </div>
   </div>
@@ -541,7 +541,7 @@ function renderResults(containerId,sessions,target,peakLimit,durMin,durMax,peakL
         <div class="rcard-value">${shortSessions.length}</div>
         <div class="rcard-unit">su ${durs.length} totali</div>
         <div class="rcard-status ${shortSessions.length===0?'ok':'danger'}">${shortSessions.length===0?'OK':'CRIT'}</div>
-        ${shortSessions.length>0?`<div class="rcard-sub">${shortSessions.length} sessione/i non raggiungono il minimo di ${durMin} min</div>`:''}
+        ${shortSessions.length>0?`<div class="rcard-sub">${shortSessions.length} session(s) do not reach the minimum of ${durMin} min</div>`:''}
       </div>
     </div>
     <div class="rcard neutral">
